@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Perspective</string>
+    <string-array name="depth">
+        <item>Auto</item>
+        <item>8 bits</item>
+        <item>16 bits</item>
+    </string-array>
+</resources>
