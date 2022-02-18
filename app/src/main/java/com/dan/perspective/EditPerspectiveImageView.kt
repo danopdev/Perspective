@@ -115,6 +115,8 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         perspectivePoints_.leftBottom.set(left, bottom)
         perspectivePoints_.rightTop.set(right, top)
         perspectivePoints_.rightBottom.set(right, bottom)
+
+        invalidate()
     }
 
     private fun drawPoint( point: PointF, radius: Float, canvas: Canvas, paint: Paint ) {
