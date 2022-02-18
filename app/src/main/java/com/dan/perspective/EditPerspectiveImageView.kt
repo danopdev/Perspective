@@ -189,8 +189,6 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
         when( event.action ) {
             MotionEvent.ACTION_DOWN -> {
-                Log.i("EDIT", "DOWN")
-
                 if (null == trackedPoint) {
                     val screenPoint = PointF(event.x, event.y)
                     val transform = ViewTransform(bitmap.width, bitmap.height, viewRect)
