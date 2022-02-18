@@ -18,9 +18,17 @@
             android:orientation="horizontal">
 
             <Button
+                android:id="@+id/buttonPreview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Button" />
+
+            <Button
                 android:id="@+id/buttonReset"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
                 android:layout_weight="1"
                 android:text="Reset" />
         </LinearLayout>
@@ -33,16 +41,11 @@
             android:background="@color/teal_700"
             android:padding="3dp">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <com.dan.perspective.EditPerspectiveImageView
+                android:id="@+id/imageView"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent" />
 
-                <com.dan.perspective.EditPerspectiveImageView
-                    android:id="@+id/imageView"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    tools:layout_editor_absoluteY="651dp" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
         </FrameLayout>
 
     </LinearLayout>
