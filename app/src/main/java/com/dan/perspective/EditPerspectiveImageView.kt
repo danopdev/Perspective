@@ -7,6 +7,8 @@ import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
 import android.view.MotionEvent
+import kotlin.math.max
+import kotlin.math.min
 
 data class PerspectivePoints(
         val leftTop: PointF = PointF(),
@@ -79,6 +81,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     private val perspectivePoints_ = PerspectivePoints()
     private var trackedPoint: PointF? = null
     private var trackedViewPoint = PointF()
+    private var trackedAllowedRect = RectF()
     private val trackedOldPosition = PointF()
 
     var perspectivePoints: PerspectivePoints
@@ -199,15 +202,43 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                     if (distance(viewPoints.leftTop, screenPoint) < minDistance) {
                         trackedPoint = perspectivePoints_.leftTop
                         trackedViewPoint.set(viewPoints.leftTop)
+
+                        trackedAllowedRect.set(
+                                viewRect.left,
+                                viewRect.top,
+                                min(viewPoints.rightTop.x, viewPoints.rightBottom.x) - minDistance,
+                                min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
+                        )
                     } else if (distance(viewPoints.leftBottom, screenPoint) < minDistance) {
                         trackedPoint = perspectivePoints_.leftBottom
                         trackedViewPoint.set(viewPoints.leftBottom)
+
+                        trackedAllowedRect.set(
+                                viewRect.left,
+                                max(viewPoints.leftTop.y, viewPoints.rightTop.y) + minDistance,
+                                min(viewPoints.rightTop.x, viewPoints.rightBottom.x) - minDistance,
+                                viewRect.bottom
+                        )
                     } else if (distance(viewPoints.rightTop, screenPoint) < minDistance) {
                         trackedPoint = perspectivePoints_.rightTop
                         trackedViewPoint.set(viewPoints.rightTop)
+
+                        trackedAllowedRect.set(
+                                max(viewPoints.leftTop.x, viewPoints.leftBottom.x) + minDistance,
+                                viewRect.top,
+                                viewRect.right,
+                                min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
+                        )
                     } else if (distance(viewPoints.rightBottom, screenPoint) < minDistance) {
                         trackedPoint = perspectivePoints_.rightBottom
                         trackedViewPoint.set(viewPoints.rightBottom)
+
+                        trackedAllowedRect.set(
+                                max(viewPoints.leftTop.x, viewPoints.leftBottom.x) + minDistance,
+                                max(viewPoints.leftTop.y, viewPoints.rightTop.y) + minDistance,
+                                viewRect.right,
+                                viewRect.bottom
+                        )
                     }
                 }
             }
@@ -222,10 +253,12 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                     val dy = event.y - trackedOldPosition.y
 
                     trackedViewPoint.offset( dx, dy )
+                    if (trackedViewPoint.x < trackedAllowedRect.left) trackedViewPoint.x = trackedAllowedRect.left
+                    if (trackedViewPoint.x > trackedAllowedRect.right) trackedViewPoint.x = trackedAllowedRect.right
+                    if (trackedViewPoint.y < trackedAllowedRect.top) trackedViewPoint.y = trackedAllowedRect.top
+                    if (trackedViewPoint.y > trackedAllowedRect.bottom) trackedViewPoint.y = trackedAllowedRect.bottom
+
                     trackedPoint.set( transform.mapToBitmap(trackedViewPoint) )
-
-                    Log.i("EDIT", "dx: ${dx}, dy: ${dy}, trackedPoint: ${trackedPoint}")
-
                     trackedOldPosition.set(event.x, event.y)
                     invalidate()
                     return true
