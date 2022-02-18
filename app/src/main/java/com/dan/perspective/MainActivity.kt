@@ -115,12 +115,7 @@ class MainActivity : AppCompatActivity() {
                     inputImage = loadImage(uri)
                     outputImage = null
 
-                    val bitmap = matToBitmap(inputImage)
-                    if (null == bitmap) {
-                        binding.imageView.setImageResource(android.R.drawable.ic_menu_report_image)
-                    } else {
-                        binding.imageView.setImageBitmap(bitmap)
-                    }
+                    binding.imageView.setBitmap(matToBitmap(inputImage))
                 }
 
                 BusyDialog.dismiss()

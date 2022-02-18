@@ -8,14 +8,10 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <ImageView
+        <com.dan.perspective.TouchImageView
             android:id="@+id/imageView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/black_border"
-            android:padding="1px"
-            android:scaleType="fitCenter"
-            app:srcCompat="@android:drawable/ic_menu_report_image" />
+            android:layout_height="match_parent" />
     </LinearLayout>
 
 </layout>
