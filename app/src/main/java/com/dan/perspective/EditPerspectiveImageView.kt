@@ -106,8 +106,34 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         canvas.drawCircle( point.x, point.y, radius, paint )
     }
 
-    private fun drawLine( pointA: PointF, pointB: PointF, canvas: Canvas, paint: Paint ) {
-        canvas.drawLine( pointA.x, pointA.y, pointB.x, pointB.y, paint )
+    private fun calculateCy( Ax: Float, Ay: Float, Bx: Float, By: Float, Cx:Float ): Float =
+        Ay + (By - Ay) * (Cx - Ax) / (Bx - Ax)
+
+    private fun drawLine( pointA: PointF, pointB: PointF, canvas: Canvas, paint: Paint, viewRect: RectF, isHorizontal: Boolean ) {
+        val pointFrom: PointF
+        val pointTo: PointF
+
+        if (isHorizontal) {
+            pointFrom = PointF(
+                viewRect.left,
+                calculateCy( pointA.x, pointA.y, pointB.x, pointB.y, viewRect.left )
+            )
+            pointTo = PointF(
+                    viewRect.right,
+                    calculateCy( pointA.x, pointA.y, pointB.x, pointB.y, viewRect.right )
+            )
+        } else {
+            pointFrom = PointF(
+                    calculateCy( pointA.y, pointA.x, pointB.y, pointB.x, viewRect.top ),
+                    viewRect.top
+            )
+            pointTo = PointF(
+                    calculateCy( pointA.y, pointA.x, pointB.y, pointB.x, viewRect.bottom ),
+                    viewRect.bottom
+            )
+        }
+
+        canvas.drawLine( pointFrom.x, pointFrom.y, pointTo.x, pointTo.y, paint )
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -124,10 +150,10 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         paint.style = Paint.Style.FILL_AND_STROKE
         paint.strokeWidth = dpToPixels(LINE_WIDTH)
         paint.color = Color.argb( 128, 255, 0, 0 )
-        drawLine( viewPoints.leftTop, viewPoints.leftBottom, canvas, paint )
-        drawLine( viewPoints.leftTop, viewPoints.rightTop, canvas, paint )
-        drawLine( viewPoints.rightTop, viewPoints.rightBottom, canvas, paint )
-        drawLine( viewPoints.leftBottom, viewPoints.rightBottom, canvas, paint )
+        drawLine( viewPoints.leftTop, viewPoints.leftBottom, canvas, paint, viewRect, false )
+        drawLine( viewPoints.leftTop, viewPoints.rightTop, canvas, paint, viewRect, true )
+        drawLine( viewPoints.rightTop, viewPoints.rightBottom, canvas, paint, viewRect, false )
+        drawLine( viewPoints.leftBottom, viewPoints.rightBottom, canvas, paint, viewRect, true )
 
         val radius = dpToPixels(POINT_RADIUS)
         paint.style = Paint.Style.FILL
