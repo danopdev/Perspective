@@ -1,0 +1,140 @@
+package com.dan.perspective
+
+import android.content.Context
+import android.content.res.Resources
+import android.graphics.*
+import android.util.AttributeSet
+import android.util.TypedValue
+
+private data class PerspectivePoints(
+        val leftTop: PointF = PointF(),
+        val leftBottom: PointF = PointF(),
+        val rightTop: PointF = PointF(),
+        val rightBottom: PointF = PointF()
+) {
+    fun set( points: PerspectivePoints ) {
+        leftTop.set(points.leftTop)
+        leftBottom.set(points.leftBottom)
+        rightTop.set(points.rightTop)
+        rightBottom.set(points.rightBottom)
+    }
+}
+
+
+private class ViewTransform(bitmapWidth: Int, bitmapHeight: Int, viewRect: RectF) {
+    private val scale = PointF()
+    private val delta = PointF()
+
+    init {
+        delta.set( viewRect.left, viewRect.top )
+        scale.set( viewRect.width() / bitmapWidth, viewRect.height() / bitmapHeight )
+    }
+
+    fun mapToView( point: PointF ): PointF {
+        return PointF(
+                delta.x + point.x * scale.x,
+                delta.y + point.y * scale.y
+        )
+    }
+
+    fun mapToView( points: PerspectivePoints ): PerspectivePoints {
+        return PerspectivePoints(
+                mapToView( points.leftTop ),
+                mapToView( points.leftBottom ),
+                mapToView( points.rightTop ),
+                mapToView( points.rightBottom )
+        )
+    }
+
+    fun mapToBitmap( point: PointF ): PointF {
+        return PointF(
+                (point.x - delta.x) / scale.x,
+                (point.y - delta.y) / scale.y,
+        )
+    }
+
+    fun mapToBitmap( points: PerspectivePoints ): PerspectivePoints {
+        return PerspectivePoints(
+                mapToBitmap( points.leftTop ),
+                mapToBitmap( points.leftBottom ),
+                mapToBitmap( points.rightTop ),
+                mapToBitmap( points.rightBottom )
+        )
+    }
+}
+
+class EditPerspectiveImageView @JvmOverloads constructor(
+        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
+) : TouchImageView(context, attrs, defStyleAttr) {
+
+    companion object {
+        const val MIN_DISTANCE = 10 // pixels
+        const val BORDER = 5 //percent
+        const val POINT_RADIUS = 15 // dp
+        const val LINE_WIDTH = 5 //dp
+    }
+
+    private val points = PerspectivePoints()
+
+    override fun setBitmap(bitmap: Bitmap? ) {
+        super.setBitmap(bitmap)
+        resetPoints()
+    }
+
+    private fun dpToPixels( value: Int ): Float {
+        return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                value.toFloat(),
+                Resources.getSystem().displayMetrics)
+    }
+
+    fun resetPoints() {
+        val bitmap = super.getBitmap() ?: return
+
+        val left = bitmap.width * BORDER.toFloat() / 100
+        val right = bitmap.width - left
+        val top = bitmap.height * BORDER.toFloat() / 100
+        val bottom = bitmap.height - top
+
+        points.leftTop.set(left, top)
+        points.leftBottom.set(left, bottom)
+        points.rightTop.set(right, top)
+        points.rightBottom.set(right, bottom)
+    }
+
+    private fun drawPoint( point: PointF, radius: Float, canvas: Canvas, paint: Paint ) {
+        canvas.drawCircle( point.x, point.y, radius, paint )
+    }
+
+    private fun drawLine( pointA: PointF, pointB: PointF, canvas: Canvas, paint: Paint ) {
+        canvas.drawLine( pointA.x, pointA.y, pointB.x, pointB.y, paint )
+    }
+
+    override fun onDraw(canvas: Canvas?) {
+        super.onDraw(canvas)
+        if (null == canvas) return
+        val bitmap = super.getBitmap() ?: return
+        val viewRect = super.viewRect
+        val transform = ViewTransform( bitmap.width, bitmap.height, viewRect )
+        val viewPoints = transform.mapToView( points )
+
+        val paint = Paint()
+
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.style = Paint.Style.FILL_AND_STROKE
+        paint.strokeWidth = dpToPixels(LINE_WIDTH)
+        paint.color = Color.argb( 128, 255, 0, 0 )
+        drawLine( viewPoints.leftTop, viewPoints.leftBottom, canvas, paint )
+        drawLine( viewPoints.leftTop, viewPoints.rightTop, canvas, paint )
+        drawLine( viewPoints.rightTop, viewPoints.rightBottom, canvas, paint )
+        drawLine( viewPoints.leftBottom, viewPoints.rightBottom, canvas, paint )
+
+        val radius = dpToPixels(POINT_RADIUS)
+        paint.style = Paint.Style.FILL
+        paint.color = Color.argb( 128, 0, 0, 255 )
+        drawPoint( viewPoints.leftTop, radius, canvas, paint )
+        drawPoint( viewPoints.leftBottom, radius, canvas, paint )
+        drawPoint( viewPoints.rightTop, radius, canvas, paint )
+        drawPoint( viewPoints.rightBottom, radius, canvas, paint )
+    }
+}

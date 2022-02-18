@@ -12,7 +12,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 
-class TouchImageView @JvmOverloads constructor(
+open class TouchImageView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
@@ -25,12 +25,15 @@ class TouchImageView @JvmOverloads constructor(
         const val MAX_PIXEL_ZOOM = 10 // bitmap pixels / view pixel
     }
 
-    private var bitmap: Bitmap? = null
+    private var _bitmap: Bitmap? = null
     private var action = ACTION_NONE
     private var actionScale = 1.0f
     private val actionScaleCenter = PointF()
     private val actionMove = PointF()
-    private val viewRect = RectF()
+    private val _viewRect = RectF()
+
+    val viewRect: RectF
+        get() = _viewRect
 
     private val scaleGestureDetector = ScaleGestureDetector(context, object: ScaleGestureDetector.OnScaleGestureListener {
         override fun onScale(detector: ScaleGestureDetector?): Boolean {
@@ -62,15 +65,17 @@ class TouchImageView @JvmOverloads constructor(
         }
     })
 
-    fun setBitmap( bitmap: Bitmap? ) {
-        this.bitmap = bitmap
+    open fun setBitmap( bitmap: Bitmap? ) {
+        this._bitmap = bitmap
         resetPosition()
         invalidate()
     }
 
+    fun getBitmap(): Bitmap? = _bitmap
+
     private fun resetPosition() {
-        bitmap?.let { bitmap ->
-            viewRect.set(bestFitRect(width, height, bitmap.width, bitmap.height))
+        _bitmap?.let { bitmap ->
+            _viewRect.set(bestFitRect(width, height, bitmap.width, bitmap.height))
         }
     }
 
@@ -131,13 +136,13 @@ class TouchImageView @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (null == event) return true
-        val bitmap = this.bitmap ?: return true
+        val bitmap = this._bitmap ?: return true
 
         action = ACTION_NONE
         scaleGestureDetector.onTouchEvent(event)
         gestureDetector.onTouchEvent(event)
 
-        val viewRect = RectF(viewRect)
+        val viewRect = RectF(_viewRect)
         val fitRect = bestFitRect(width, height, bitmap.width, bitmap.height)
         val minSize = PointF(fitRect.width(), fitRect.height())
         val maxSize = PointF(bitmap.width.toFloat() * MAX_PIXEL_ZOOM, bitmap.height.toFloat() * MAX_PIXEL_ZOOM)
@@ -188,8 +193,8 @@ class TouchImageView @JvmOverloads constructor(
             }
         }
 
-        val dirty = viewRect.toRect() != this.viewRect.toRect()
-        this.viewRect.set(viewRect)
+        val dirty = viewRect.toRect() != this._viewRect.toRect()
+        this._viewRect.set(viewRect)
 
         if (dirty) invalidate()
 
@@ -208,7 +213,7 @@ class TouchImageView @JvmOverloads constructor(
         bgPaint.style = Paint.Style.FILL
         canvas.drawRect(widgetRect, bgPaint)
 
-        val bitmap = this.bitmap
+        val bitmap = this._bitmap
         if (null == bitmap) {
             @Suppress("DEPRECATION")
             val noImage = resources.getDrawable( android.R.drawable.ic_menu_report_image )
@@ -216,7 +221,7 @@ class TouchImageView @JvmOverloads constructor(
             noImage.setTint(Color.GRAY)
             noImage.draw(canvas)
         } else {
-            canvas.drawBitmap( bitmap, Rect(0,0,bitmap.width, bitmap.height), viewRect.toRect(), null )
+            canvas.drawBitmap( bitmap, Rect(0,0,bitmap.width, bitmap.height), _viewRect.toRect(), null )
         }
 
         //draw black border
