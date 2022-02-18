@@ -269,10 +269,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.buttonReset.setOnClickListener { binding.imageView.resetPoints() }
-        binding.buttonPreview.setOnClickListener { showPreview() }
-    }
-
-    private fun showPreview() {
-        //TODO
+        binding.buttonPreview.setOnClickListener {
+            val bitmap = binding.imageView.getBitmap()
+            if (null != bitmap) {
+                PreviewDialog.show(supportFragmentManager, bitmap) //TODO: generate a warped bitmap
+            }
+        }
     }
 }
