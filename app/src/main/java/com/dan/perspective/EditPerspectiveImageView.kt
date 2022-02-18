@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.res.Resources
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.Log
 import android.util.TypedValue
+import android.view.MotionEvent
 
 private data class PerspectivePoints(
         val leftTop: PointF = PointF(),
@@ -72,9 +74,13 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         const val BORDER = 5 //percent
         const val POINT_RADIUS = 15 // dp
         const val LINE_WIDTH = 5 //dp
+        const val MIN_POINT_DISTANCE_TO_TRACK = 20 //dp
     }
 
     private val points = PerspectivePoints()
+    private var trackedPoint: PointF? = null
+    private var trackedViewPoint = PointF()
+    private val trackedOldPosition = PointF()
 
     override fun setBitmap(bitmap: Bitmap? ) {
         super.setBitmap(bitmap)
@@ -139,6 +145,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         if (null == canvas) return
+
         val bitmap = super.getBitmap() ?: return
         val viewRect = super.viewRect
         val transform = ViewTransform( bitmap.width, bitmap.height, viewRect )
@@ -162,5 +169,76 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         drawPoint( viewPoints.leftBottom, radius, canvas, paint )
         drawPoint( viewPoints.rightTop, radius, canvas, paint )
         drawPoint( viewPoints.rightBottom, radius, canvas, paint )
+    }
+
+    private fun distance( pointA: PointF, pointB: PointF ): Float =
+            PointF.length( pointA.x - pointB.x, pointA.y - pointB.y )
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        if (null == event) return true
+        val bitmap = super.getBitmap() ?: return true
+
+        when( event.action ) {
+            MotionEvent.ACTION_DOWN -> {
+                Log.i("EDIT", "DOWN")
+
+                if (null == trackedPoint) {
+                    val screenPoint = PointF(event.x, event.y)
+                    val transform = ViewTransform(bitmap.width, bitmap.height, viewRect)
+                    val viewPoints = transform.mapToView(points)
+                    val minDistance = dpToPixels(MIN_POINT_DISTANCE_TO_TRACK)
+
+                    trackedOldPosition.set(event.x, event.y)
+
+                    if (distance(viewPoints.leftTop, screenPoint) < minDistance) {
+                        trackedPoint = points.leftTop
+                        trackedViewPoint.set(viewPoints.leftTop)
+                    } else if (distance(viewPoints.leftBottom, screenPoint) < minDistance) {
+                        trackedPoint = points.leftBottom
+                        trackedViewPoint.set(viewPoints.leftBottom)
+                    } else if (distance(viewPoints.rightTop, screenPoint) < minDistance) {
+                        trackedPoint = points.rightTop
+                        trackedViewPoint.set(viewPoints.rightTop)
+                    } else if (distance(viewPoints.rightBottom, screenPoint) < minDistance) {
+                        trackedPoint = points.rightBottom
+                        trackedViewPoint.set(viewPoints.rightBottom)
+                    }
+                }
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                val trackedPoint = this.trackedPoint
+
+                if (null != trackedPoint) {
+                    val transform = ViewTransform(bitmap.width, bitmap.height, viewRect)
+
+                    val dx = event.x - trackedOldPosition.x
+                    val dy = event.y - trackedOldPosition.y
+
+                    trackedViewPoint.offset( dx, dy )
+                    trackedPoint.set( transform.mapToBitmap(trackedViewPoint) )
+
+                    Log.i("EDIT", "dx: ${dx}, dy: ${dy}, trackedPoint: ${trackedPoint}")
+
+                    trackedOldPosition.set(event.x, event.y)
+                    invalidate()
+                    return true
+                }
+            }
+
+            MotionEvent.ACTION_UP -> {
+                if (null != trackedPoint) {
+                    trackedPoint = null
+                    return true
+                }
+            }
+        }
+
+        if (null != trackedPoint) {
+            Log.i("EDIT", "Track is ON")
+            return true
+        }
+
+        return super.onTouchEvent(event)
     }
 }
