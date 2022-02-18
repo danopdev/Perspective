@@ -15,7 +15,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import com.dan.perspective.databinding.ActivityMainBinding
-import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
 import org.opencv.core.*
 import org.opencv.core.CvType.*
@@ -38,8 +37,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     val settings: Settings by lazy { Settings(this) }
-    var inputImage: Mat? = null
-    var outputImage: Mat? = null
+    private var inputImage: Mat? = null
+    private var outputImage: Mat? = null
+    private var menuSave: MenuItem? = null
 
     private val binding: ActivityMainBinding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private var outputName = Settings.DEFAULT_NAME
@@ -67,6 +67,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+        menuSave = menu?.findItem(R.id.save)
+        menuSave?.isEnabled = null != inputImage
         return true
     }
 
@@ -112,10 +114,7 @@ class MainActivity : AppCompatActivity() {
                     } catch (e: Exception) {
                     }
 
-                    inputImage = loadImage(uri)
-                    outputImage = null
-
-                    binding.imageView.setBitmap(matToBitmap(inputImage))
+                    setImage(uri)
                 }
 
                 BusyDialog.dismiss()
@@ -231,6 +230,17 @@ class MainActivity : AppCompatActivity() {
 
         Utils.matToBitmap(image8Bits, bitmap)
         return bitmap
+    }
+
+    private fun setImage(uri: Uri) {
+        inputImage = loadImage(uri)
+        outputImage = null
+
+        val enabled = null != inputImage
+        binding.imageView.setBitmap(matToBitmap(inputImage))
+        binding.buttonPreview.isEnabled = enabled
+        binding.buttonReset.isEnabled = enabled
+        menuSave?.isEnabled = enabled
     }
 
     private fun loadImage(uri: Uri) : Mat? {
