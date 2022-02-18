@@ -223,12 +223,5 @@ open class TouchImageView @JvmOverloads constructor(
         } else {
             canvas.drawBitmap( bitmap, Rect(0,0,bitmap.width, bitmap.height), _viewRect.toRect(), null )
         }
-
-        //draw black border
-        val borderPaint = Paint()
-        borderPaint.color = Color.BLACK
-        borderPaint.style = Paint.Style.STROKE
-        borderPaint.strokeWidth = 2.0f
-        canvas.drawRect(widgetRect, borderPaint)
     }
 }
