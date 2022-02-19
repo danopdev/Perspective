@@ -208,46 +208,54 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
                     trackedOldPosition.set(event.x, event.y)
 
-                    if (distance(viewPoints.leftTop, screenPoint) < minDistance) {
-                        trackedPoint = _perspectivePoints.leftTop
-                        trackedViewPoint.set(viewPoints.leftTop)
+                    when {
+                        distance(viewPoints.leftTop, screenPoint) < minDistance -> {
+                            trackedPoint = _perspectivePoints.leftTop
+                            trackedViewPoint.set(viewPoints.leftTop)
 
-                        trackedAllowedRect.set(
-                                viewRect.left,
-                                viewRect.top,
-                                min(viewPoints.rightTop.x, viewPoints.rightBottom.x) - minDistance,
-                                min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
-                        )
-                    } else if (distance(viewPoints.leftBottom, screenPoint) < minDistance) {
-                        trackedPoint = _perspectivePoints.leftBottom
-                        trackedViewPoint.set(viewPoints.leftBottom)
+                            trackedAllowedRect.set(
+                                    viewRect.left,
+                                    viewRect.top,
+                                    min(viewPoints.rightTop.x, viewPoints.rightBottom.x) - minDistance,
+                                    min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
+                            )
+                        }
 
-                        trackedAllowedRect.set(
-                                viewRect.left,
-                                max(viewPoints.leftTop.y, viewPoints.rightTop.y) + minDistance,
-                                min(viewPoints.rightTop.x, viewPoints.rightBottom.x) - minDistance,
-                                viewRect.bottom
-                        )
-                    } else if (distance(viewPoints.rightTop, screenPoint) < minDistance) {
-                        trackedPoint = _perspectivePoints.rightTop
-                        trackedViewPoint.set(viewPoints.rightTop)
+                        distance(viewPoints.leftBottom, screenPoint) < minDistance -> {
+                            trackedPoint = _perspectivePoints.leftBottom
+                            trackedViewPoint.set(viewPoints.leftBottom)
 
-                        trackedAllowedRect.set(
-                                max(viewPoints.leftTop.x, viewPoints.leftBottom.x) + minDistance,
-                                viewRect.top,
-                                viewRect.right,
-                                min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
-                        )
-                    } else if (distance(viewPoints.rightBottom, screenPoint) < minDistance) {
-                        trackedPoint = _perspectivePoints.rightBottom
-                        trackedViewPoint.set(viewPoints.rightBottom)
+                            trackedAllowedRect.set(
+                                    viewRect.left,
+                                    max(viewPoints.leftTop.y, viewPoints.rightTop.y) + minDistance,
+                                    min(viewPoints.rightTop.x, viewPoints.rightBottom.x) - minDistance,
+                                    viewRect.bottom
+                            )
+                        }
 
-                        trackedAllowedRect.set(
-                                max(viewPoints.leftTop.x, viewPoints.leftBottom.x) + minDistance,
-                                max(viewPoints.leftTop.y, viewPoints.rightTop.y) + minDistance,
-                                viewRect.right,
-                                viewRect.bottom
-                        )
+                        distance(viewPoints.rightTop, screenPoint) < minDistance -> {
+                            trackedPoint = _perspectivePoints.rightTop
+                            trackedViewPoint.set(viewPoints.rightTop)
+
+                            trackedAllowedRect.set(
+                                    max(viewPoints.leftTop.x, viewPoints.leftBottom.x) + minDistance,
+                                    viewRect.top,
+                                    viewRect.right,
+                                    min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
+                            )
+                        }
+
+                        distance(viewPoints.rightBottom, screenPoint) < minDistance -> {
+                            trackedPoint = _perspectivePoints.rightBottom
+                            trackedViewPoint.set(viewPoints.rightBottom)
+
+                            trackedAllowedRect.set(
+                                    max(viewPoints.leftTop.x, viewPoints.leftBottom.x) + minDistance,
+                                    max(viewPoints.leftTop.y, viewPoints.rightTop.y) + minDistance,
+                                    viewRect.right,
+                                    viewRect.bottom
+                            )
+                        }
                     }
                 }
             }
