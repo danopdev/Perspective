@@ -223,8 +223,8 @@ class MainActivity : AppCompatActivity() {
         return image
     }
 
-    private fun matToBitmap(image: Mat?): Bitmap? {
-        if (null == image || image.empty()) return null
+    private fun matToBitmap(image: Mat): Bitmap? {
+        if (image.empty()) return null
 
         val bitmap = Bitmap.createBitmap(
                 image.cols(),
