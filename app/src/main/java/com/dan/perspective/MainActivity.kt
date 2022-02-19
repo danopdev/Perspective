@@ -285,5 +285,6 @@ class MainActivity : AppCompatActivity() {
         binding.buttonPreview.setOnClickListener {
             //TODO: generate a warped bitmap
         }
+        binding.imageEdit.setOnPerspectiveChanged { outputImage = null }
     }
 }
