@@ -7,6 +7,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
 import android.view.MotionEvent
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
@@ -126,9 +127,11 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     private fun calculateCy( Ax: Float, Ay: Float, Bx: Float, By: Float, Cx:Float ): Float =
         Ay + (By - Ay) * (Cx - Ax) / (Bx - Ax)
 
-    private fun drawLine( pointA: PointF, pointB: PointF, canvas: Canvas, paint: Paint, viewRect: RectF, isHorizontal: Boolean ) {
+    private fun drawLine( pointA: PointF, pointB: PointF, canvas: Canvas, paint: Paint, viewRect: RectF ) {
         val pointFrom: PointF
         val pointTo: PointF
+
+        val isHorizontal = abs(pointA.x - pointB.x) > abs(pointA.y - pointB.y)
 
         if (isHorizontal) {
             pointFrom = PointF(
@@ -168,10 +171,10 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         paint.style = Paint.Style.FILL_AND_STROKE
         paint.strokeWidth = dpToPixels(LINE_WIDTH)
         paint.color = Color.argb( 128, 255, 0, 0 )
-        drawLine( viewPoints.leftTop, viewPoints.leftBottom, canvas, paint, viewRect, false )
-        drawLine( viewPoints.leftTop, viewPoints.rightTop, canvas, paint, viewRect, true )
-        drawLine( viewPoints.rightTop, viewPoints.rightBottom, canvas, paint, viewRect, false )
-        drawLine( viewPoints.leftBottom, viewPoints.rightBottom, canvas, paint, viewRect, true )
+        drawLine( viewPoints.leftTop, viewPoints.leftBottom, canvas, paint, viewRect )
+        drawLine( viewPoints.leftTop, viewPoints.rightTop, canvas, paint, viewRect )
+        drawLine( viewPoints.rightTop, viewPoints.rightBottom, canvas, paint, viewRect )
+        drawLine( viewPoints.leftBottom, viewPoints.rightBottom, canvas, paint, viewRect )
 
         val radius = dpToPixels(POINT_RADIUS)
         paint.style = Paint.Style.FILL
