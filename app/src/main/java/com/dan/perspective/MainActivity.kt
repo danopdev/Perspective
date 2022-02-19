@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -40,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var inputImage: Mat? = null
     private var outputImage: Mat? = null
     private var menuSave: MenuItem? = null
+    private var editMode = true
 
     private val binding: ActivityMainBinding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private var outputName = Settings.DEFAULT_NAME
@@ -53,6 +55,13 @@ class MainActivity : AppCompatActivity() {
 
         if (!askPermissions())
             onPermissionsAllowed()
+    }
+
+    private fun setEditMode( enabled: Boolean ) {
+        if (enabled == editMode) return
+        editMode = enabled
+        updateButtons()
+        binding.imagePreview.visibility = if (!editMode) View.VISIBLE else View.GONE
     }
 
     override fun onRequestPermissionsResult(
@@ -235,11 +244,15 @@ class MainActivity : AppCompatActivity() {
     private fun setImage(uri: Uri) {
         inputImage = loadImage(uri)
         outputImage = null
+        binding.imageEdit.setBitmap(matToBitmap(inputImage))
+        updateButtons()
+    }
 
+    private fun updateButtons() {
         val enabled = null != inputImage
-        binding.imageView.setBitmap(matToBitmap(inputImage))
-        binding.buttonPreview.isEnabled = enabled
         binding.buttonReset.isEnabled = enabled
+        binding.buttonPreview.isEnabled = enabled && editMode
+        binding.buttonEdit.isEnabled = enabled && !editMode
         menuSave?.isEnabled = enabled
     }
 
@@ -268,12 +281,9 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(binding.root)
 
-        binding.buttonReset.setOnClickListener { binding.imageView.resetPoints() }
+        binding.buttonReset.setOnClickListener { binding.imageEdit.resetPoints() }
         binding.buttonPreview.setOnClickListener {
-            val bitmap = binding.imageView.getBitmap()
-            if (null != bitmap) {
-                PreviewDialog.show(supportFragmentManager, bitmap) //TODO: generate a warped bitmap
-            }
+            //TODO: generate a warped bitmap
         }
     }
 }

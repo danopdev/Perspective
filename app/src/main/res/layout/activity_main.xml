@@ -18,19 +18,39 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/buttonPreview"
+                android:id="@+id/buttonEdit"
+                style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Button" />
+                android:layout_marginRight="16dp"
+                android:layout_weight="0"
+                android:text="&lt;  Edit"
+                android:textAlignment="textStart"
+                android:textAllCaps="false"
+                android:textColor="@color/button_text" />
 
             <Button
                 android:id="@+id/buttonReset"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Reset"
+                android:textAllCaps="false"
+                android:textColor="@color/button_text" />
+
+            <Button
+                android:id="@+id/buttonPreview"
+                style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="16dp"
-                android:layout_weight="1"
-                android:text="Reset" />
+                android:layout_weight="0"
+                android:enabled="false"
+                android:text="Preview &gt;"
+                android:textAlignment="textEnd"
+                android:textAllCaps="false"
+                android:textColor="@color/button_text" />
         </LinearLayout>
 
         <FrameLayout
@@ -41,10 +61,30 @@
             android:background="@color/teal_700"
             android:padding="3dp">
 
-            <com.dan.perspective.EditPerspectiveImageView
-                android:id="@+id/imageView"
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent">
+
+                <com.dan.perspective.EditPerspectiveImageView
+                    android:id="@+id/imageEdit"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <com.dan.perspective.TouchImageView
+                    android:id="@+id/imagePreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toTopOf="parent"
+                    app:layout_constraintEnd_toStartOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
         </FrameLayout>
 
