@@ -250,7 +250,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateButtons() {
         val enabled = null != inputImage
-        binding.buttonReset.isEnabled = enabled
+        binding.buttonReset.isEnabled = enabled && editMode
         binding.buttonPreview.isEnabled = enabled && editMode
         binding.buttonEdit.isEnabled = enabled && !editMode
         menuSave?.isEnabled = enabled
