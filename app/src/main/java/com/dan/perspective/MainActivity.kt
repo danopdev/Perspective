@@ -23,7 +23,6 @@ import org.opencv.core.CvType.*
 import org.opencv.core.Mat
 import org.opencv.core.MatOfInt
 import org.opencv.imgcodecs.Imgcodecs
-import org.opencv.imgproc.Imgproc
 import org.opencv.imgproc.Imgproc.*
 import java.io.File
 import kotlin.concurrent.timer
