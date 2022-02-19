@@ -84,6 +84,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     private var trackedViewPoint = PointF()
     private var trackedAllowedRect = RectF()
     private val trackedOldPosition = PointF()
+    private var onPerspectiveChanged: (()->Unit)? = null
 
     var perspectivePoints: PerspectivePoints
         get() = _perspectivePoints
@@ -91,6 +92,10 @@ class EditPerspectiveImageView @JvmOverloads constructor(
             _perspectivePoints.set(points)
             invalidate()
         }
+
+    fun setOnPerspectiveChanged( listener: (()->Unit)? ) {
+        onPerspectiveChanged = listener
+    }
 
     override fun setBitmap(bitmap: Bitmap? ) {
         super.setBitmap(bitmap)
@@ -118,6 +123,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         _perspectivePoints.rightBottom.set(right, bottom)
 
         invalidate()
+        onPerspectiveChanged?.invoke()
     }
 
     private fun drawPoint( point: PointF, radius: Float, canvas: Canvas, paint: Paint ) {
@@ -264,6 +270,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                     trackedPoint.set( transform.mapToBitmap(trackedViewPoint) )
                     trackedOldPosition.set(event.x, event.y)
                     invalidate()
+                    onPerspectiveChanged?.invoke()
                     return true
                 }
             }
