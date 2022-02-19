@@ -242,8 +242,8 @@ class MainActivity : AppCompatActivity() {
     private fun setImage(uri: Uri) {
         BusyDialog.show(supportFragmentManager, "Loading image")
         inputImage = loadImage(uri)
-        outputImage.release()
         binding.imageEdit.setBitmap(matToBitmap(inputImage))
+        clearOutputImage()
         updateButtons()
         BusyDialog.dismiss()
     }
@@ -306,7 +306,14 @@ class MainActivity : AppCompatActivity() {
         val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
         warpPerspective( inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
 
+        binding.imagePreview.setBitmap( matToBitmap(outputImage) )
+
         BusyDialog.dismiss()
+    }
+
+    private fun clearOutputImage() {
+        outputImage.release()
+        binding.imagePreview.setBitmap(null)
     }
 
     private fun onPermissionsAllowed() {
@@ -319,9 +326,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.buttonReset.setOnClickListener { binding.imageEdit.resetPoints() }
+        binding.imageEdit.setOnPerspectiveChanged { clearOutputImage() }
+
         binding.buttonPreview.setOnClickListener {
-            //TODO: generate a warped bitmap
+            warpImage()
+            setEditMode(false)
         }
-        binding.imageEdit.setOnPerspectiveChanged { outputImage.release() }
     }
 }
