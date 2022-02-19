@@ -1,11 +1,13 @@
 package com.dan.perspective
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -19,8 +21,11 @@ import com.dan.perspective.databinding.ActivityMainBinding
 import org.opencv.android.Utils
 import org.opencv.core.CvType.*
 import org.opencv.core.Mat
+import org.opencv.core.MatOfInt
+import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 import org.opencv.imgproc.Imgproc.*
+import java.io.File
 import kotlin.concurrent.timer
 
 
@@ -90,6 +95,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             R.id.save -> {
+                warpImage()
+                saveImage()
                 return true
             }
 
@@ -240,7 +247,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setImage(uri: Uri) {
-        BusyDialog.show(supportFragmentManager, "Loading image")
+        BusyDialog.show(supportFragmentManager, "Loading")
         inputImage = loadImage(uri)
         binding.imageEdit.setBitmap(matToBitmap(inputImage))
         clearOutputImage()
@@ -272,11 +279,69 @@ class MainActivity : AppCompatActivity() {
         return convertToDepth(imageRGB, settings.engineDepth)
     }
 
+    private fun saveImage() {
+        if (outputImage.empty()) return
+
+        BusyDialog.show(supportFragmentManager, "Saving")
+
+        val outputExtension = settings.outputExtension()
+
+        try {
+            var fileName = "${outputName}.${outputExtension}"
+            var fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
+            var counter = 0
+            while (File(fileFullPath).exists() && counter < 998) {
+                counter++
+                val counterStr = "%03d".format(counter)
+                fileName = "${outputName}_${counterStr}.${outputExtension}"
+                fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
+            }
+
+            val outputRGB = Mat()
+            cvtColor(outputImage, outputRGB, COLOR_BGR2RGB)
+
+            var outputDepth = Settings.DEPTH_AUTO
+
+            if ( Settings.OUTPUT_TYPE_JPEG == settings.outputType
+                    || (Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_8_BITS == settings.pngDepth)
+                    || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_8_BITS == settings.tiffDepth)
+            ) {
+                outputDepth = Settings.DEPTH_8_BITS
+            } else if ( (Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_16_BITS == settings.pngDepth)
+                    || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_16_BITS == settings.tiffDepth)
+            ) {
+                outputDepth = Settings.DEPTH_16_BITS
+            }
+
+            File(fileFullPath).parentFile?.mkdirs()
+
+            val outputParams = MatOfInt()
+
+            if (Settings.OUTPUT_TYPE_JPEG == settings.outputType) {
+                outputParams.fromArray(Imgcodecs.IMWRITE_JPEG_QUALITY, settings.jpegQuality )
+            }
+
+            Imgcodecs.imwrite(fileFullPath, convertToDepth(outputRGB, outputDepth), outputParams)
+            showToast("Saved to: ${fileName}")
+
+            //Add it to gallery
+            val values = ContentValues()
+            @Suppress("DEPRECATION")
+            values.put(MediaStore.Images.Media.DATA, fileFullPath)
+            values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
+            contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        } catch (e: Exception) {
+            showToast("Failed to save")
+        }
+
+        BusyDialog.dismiss()
+    }
+
     private fun warpImage() {
         if (inputImage.empty()) return
         if (!outputImage.empty()) return
 
-        BusyDialog.show(supportFragmentManager, "Warping image")
+        BusyDialog.show(supportFragmentManager, "Warping")
 
         val perspectivePoints = binding.imageEdit.perspectivePoints
 
