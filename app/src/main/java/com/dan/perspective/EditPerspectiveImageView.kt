@@ -78,16 +78,16 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         const val MIN_POINT_DISTANCE_TO_TRACK = 20 //dp
     }
 
-    private val perspectivePoints_ = PerspectivePoints()
+    private val _perspectivePoints = PerspectivePoints()
     private var trackedPoint: PointF? = null
     private var trackedViewPoint = PointF()
     private var trackedAllowedRect = RectF()
     private val trackedOldPosition = PointF()
 
     var perspectivePoints: PerspectivePoints
-        get() = perspectivePoints_
+        get() = _perspectivePoints
         set(points) {
-            perspectivePoints_.set(points)
+            _perspectivePoints.set(points)
             invalidate()
         }
 
@@ -111,10 +111,10 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         val top = bitmap.height * BORDER.toFloat() / 100
         val bottom = bitmap.height - top
 
-        perspectivePoints_.leftTop.set(left, top)
-        perspectivePoints_.leftBottom.set(left, bottom)
-        perspectivePoints_.rightTop.set(right, top)
-        perspectivePoints_.rightBottom.set(right, bottom)
+        _perspectivePoints.leftTop.set(left, top)
+        _perspectivePoints.leftBottom.set(left, bottom)
+        _perspectivePoints.rightTop.set(right, top)
+        _perspectivePoints.rightBottom.set(right, bottom)
 
         invalidate()
     }
@@ -160,7 +160,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         val bitmap = super.getBitmap() ?: return
         val viewRect = super.viewRect
         val transform = ViewTransform( bitmap.width, bitmap.height, viewRect )
-        val viewPoints = transform.mapToView( perspectivePoints_ )
+        val viewPoints = transform.mapToView( _perspectivePoints )
 
         val paint = Paint()
 
@@ -194,13 +194,13 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                 if (null == trackedPoint) {
                     val screenPoint = PointF(event.x, event.y)
                     val transform = ViewTransform(bitmap.width, bitmap.height, viewRect)
-                    val viewPoints = transform.mapToView(perspectivePoints_)
+                    val viewPoints = transform.mapToView(_perspectivePoints)
                     val minDistance = dpToPixels(MIN_POINT_DISTANCE_TO_TRACK)
 
                     trackedOldPosition.set(event.x, event.y)
 
                     if (distance(viewPoints.leftTop, screenPoint) < minDistance) {
-                        trackedPoint = perspectivePoints_.leftTop
+                        trackedPoint = _perspectivePoints.leftTop
                         trackedViewPoint.set(viewPoints.leftTop)
 
                         trackedAllowedRect.set(
@@ -210,7 +210,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                                 min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
                         )
                     } else if (distance(viewPoints.leftBottom, screenPoint) < minDistance) {
-                        trackedPoint = perspectivePoints_.leftBottom
+                        trackedPoint = _perspectivePoints.leftBottom
                         trackedViewPoint.set(viewPoints.leftBottom)
 
                         trackedAllowedRect.set(
@@ -220,7 +220,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                                 viewRect.bottom
                         )
                     } else if (distance(viewPoints.rightTop, screenPoint) < minDistance) {
-                        trackedPoint = perspectivePoints_.rightTop
+                        trackedPoint = _perspectivePoints.rightTop
                         trackedViewPoint.set(viewPoints.rightTop)
 
                         trackedAllowedRect.set(
@@ -230,7 +230,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                                 min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
                         )
                     } else if (distance(viewPoints.rightBottom, screenPoint) < minDistance) {
-                        trackedPoint = perspectivePoints_.rightBottom
+                        trackedPoint = _perspectivePoints.rightBottom
                         trackedViewPoint.set(viewPoints.rightBottom)
 
                         trackedAllowedRect.set(
