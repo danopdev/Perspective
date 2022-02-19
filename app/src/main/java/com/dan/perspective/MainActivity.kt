@@ -17,8 +17,9 @@ import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import com.dan.perspective.databinding.ActivityMainBinding
 import org.opencv.android.Utils
-import org.opencv.core.*
 import org.opencv.core.CvType.*
+import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
 import org.opencv.imgproc.Imgproc.*
 import kotlin.concurrent.timer
 
@@ -26,8 +27,8 @@ import kotlin.concurrent.timer
 class MainActivity : AppCompatActivity() {
     companion object {
         val PERMISSIONS = arrayOf(
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
         )
 
         const val REQUEST_PERMISSIONS = 1
@@ -38,8 +39,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     val settings: Settings by lazy { Settings(this) }
-    private var inputImage: Mat? = null
-    private var outputImage: Mat? = null
+    private var inputImage = Mat()
+    private var outputImage = Mat()
     private var menuSave: MenuItem? = null
     private var editMode = true
 
@@ -57,7 +58,7 @@ class MainActivity : AppCompatActivity() {
             onPermissionsAllowed()
     }
 
-    private fun setEditMode( enabled: Boolean ) {
+    private fun setEditMode(enabled: Boolean) {
         if (enabled == editMode) return
         editMode = enabled
         updateButtons()
@@ -65,9 +66,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
+            requestCode: Int,
+            permissions: Array<String>,
+            grantResults: IntArray
     ) {
         when (requestCode) {
             REQUEST_PERMISSIONS -> handleRequestPermissions(grantResults)
@@ -77,7 +78,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         menuSave = menu?.findItem(R.id.save)
-        menuSave?.isEnabled = null != inputImage
+        menuSave?.isEnabled = !inputImage.empty()
         return true
     }
 
@@ -106,14 +107,13 @@ class MainActivity : AppCompatActivity() {
 
         if (resultCode == RESULT_OK && requestCode == INTENT_OPEN_IMAGE) {
             outputName = Settings.DEFAULT_NAME
-            BusyDialog.show(supportFragmentManager, "Loading image")
 
             runFakeAsync {
                 data?.data?.let { uri ->
                     try {
                         DocumentFile.fromSingleUri(
-                            applicationContext,
-                            uri
+                                applicationContext,
+                                uri
                         )?.name?.let { name ->
                             if (name.length > 0) {
                                 val fields = name.split('.')
@@ -125,8 +125,6 @@ class MainActivity : AppCompatActivity() {
 
                     setImage(uri)
                 }
-
-                BusyDialog.dismiss()
             }
         }
     }
@@ -197,7 +195,7 @@ class MainActivity : AppCompatActivity() {
         else fatalError("You must allow permissions !")
     }
 
-    private fun convertToDepth( image: Mat, depth: Int ) : Mat {
+    private fun convertToDepth(image: Mat, depth: Int) : Mat {
         when( depth ) {
             Settings.DEPTH_8_BITS -> {
                 if (CV_16UC3 == image.type()) {
@@ -242,34 +240,73 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setImage(uri: Uri) {
+        BusyDialog.show(supportFragmentManager, "Loading image")
         inputImage = loadImage(uri)
-        outputImage = null
+        outputImage.release()
         binding.imageEdit.setBitmap(matToBitmap(inputImage))
         updateButtons()
+        BusyDialog.dismiss()
     }
 
     private fun updateButtons() {
-        val enabled = null != inputImage
+        val enabled = !inputImage.empty()
         binding.buttonReset.isEnabled = enabled && editMode
         binding.buttonPreview.isEnabled = enabled && editMode
         binding.buttonEdit.isEnabled = enabled && !editMode
         menuSave?.isEnabled = enabled
     }
 
-    private fun loadImage(uri: Uri) : Mat? {
+    private fun loadImage(uri: Uri) : Mat {
         // Can't create MatOfByte from kotlin ByteArray, but works correctly from java byte[]
         val image = OpenCVLoadImageFromUri.load(uri, contentResolver)
-        if (null == image || image.empty()) return null
+        if (null == image || image.empty()) return Mat()
 
         val imageRGB = Mat()
 
         when(image.type()) {
             CV_8UC3, CV_16UC3 -> cvtColor(image, imageRGB, COLOR_BGR2RGB)
             CV_8UC4, CV_16UC4 -> cvtColor(image, imageRGB, COLOR_BGRA2RGB)
-            else -> return null
+            else -> return Mat()
         }
 
         return convertToDepth(imageRGB, settings.engineDepth)
+    }
+
+    private fun warpImage() {
+        if (inputImage.empty()) return
+        if (!outputImage.empty()) return
+
+        BusyDialog.show(supportFragmentManager, "Warping image")
+
+        val perspectivePoints = binding.imageEdit.perspectivePoints
+
+        val srcMat = Mat(4, 1, CV_32FC2)
+        srcMat.put(
+                0, 0,
+                perspectivePoints.leftTop.x.toDouble(), perspectivePoints.leftTop.y.toDouble(),
+                perspectivePoints.rightTop.x.toDouble(), perspectivePoints.rightTop.y.toDouble(),
+                perspectivePoints.rightBottom.x.toDouble(), perspectivePoints.rightBottom.y.toDouble(),
+                perspectivePoints.leftBottom.x.toDouble(), perspectivePoints.leftBottom.y.toDouble(),
+        )
+
+        val destLeft = (perspectivePoints.leftTop.x + perspectivePoints.leftBottom.x) / 2.0
+        val destRight = (perspectivePoints.rightTop.x + perspectivePoints.rightBottom.x) / 2.0
+        val destTop = (perspectivePoints.leftTop.y + perspectivePoints.rightBottom.y) / 2.0
+        val destBottom = (perspectivePoints.leftBottom.y + perspectivePoints.rightBottom.y) / 2.0
+
+        val destMat = Mat(4, 1, CV_32FC2)
+        destMat.put(
+                0,0,
+                destLeft, destTop,
+                destRight, destTop,
+                destRight, destBottom,
+                destLeft, destBottom
+        )
+
+        val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
+        warpPerspective( inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
+
+        BusyDialog.dismiss()
     }
 
     private fun onPermissionsAllowed() {
@@ -285,6 +322,6 @@ class MainActivity : AppCompatActivity() {
         binding.buttonPreview.setOnClickListener {
             //TODO: generate a warped bitmap
         }
-        binding.imageEdit.setOnPerspectiveChanged { outputImage = null }
+        binding.imageEdit.setOnPerspectiveChanged { outputImage.release() }
     }
 }
