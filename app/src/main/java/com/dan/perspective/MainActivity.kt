@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity() {
                                 applicationContext,
                                 uri
                         )?.name?.let { name ->
-                            if (name.length > 0) {
+                            if (name.isNotEmpty()) {
                                 val fields = name.split('.')
                                 outputName = fields[0]
                             }
@@ -321,7 +321,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             Imgcodecs.imwrite(fileFullPath, convertToDepth(outputRGB, outputDepth), outputParams)
-            showToast("Saved to: ${fileName}")
+            showToast("Saved to: $fileName")
 
             //Add it to gallery
             val values = ContentValues()
