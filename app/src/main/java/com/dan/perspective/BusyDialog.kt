@@ -12,22 +12,17 @@ import com.dan.perspective.databinding.BusyDialogBinding
 class BusyDialog(private val title: String): DialogFragment() {
 
     companion object {
-        private const val FRAGMENT_TAG = "busy"
+        private const val FRAGMENT_TAG = "busy_dialog"
         private var currentDialog: BusyDialog? = null
-        private lateinit var activity: MainActivity
         private var counter = 0
 
-        fun create(activity_: MainActivity) {
-            activity = activity_
-        }
-
-        fun show(supportFragmentManager: FragmentManager, title: String) {
+        fun show(fragmentManager: FragmentManager, title: String) {
             try {
                 val currentDialog = this.currentDialog
                 if (null == currentDialog) {
                     val dialog = BusyDialog(title)
                     dialog.isCancelable = false
-                    dialog.show(supportFragmentManager, FRAGMENT_TAG)
+                    dialog.show(fragmentManager, FRAGMENT_TAG)
                     this.currentDialog = dialog
                     counter = 1
                 } else {
@@ -39,17 +34,15 @@ class BusyDialog(private val title: String): DialogFragment() {
         }
 
         fun dismiss(all: Boolean = false) {
-            activity.runOnUiThread {
-                if( counter <= 1 || all) {
-                    try {
-                        currentDialog?.dismiss()
-                    } catch (e: Exception) {
-                    }
-                    currentDialog = null
-                    counter = 0
-                } else {
-                    counter--
+            if( counter <= 1 || all) {
+                try {
+                    currentDialog?.dismiss()
+                } catch (e: Exception) {
                 }
+                currentDialog = null
+                counter = 0
+            } else {
+                counter--
             }
         }
 
