@@ -85,7 +85,6 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     private var trackedAllowedRect = RectF()
     private val trackedOldPosition = PointF()
     private var onPerspectiveChanged: (()->Unit)? = null
-    private var currentDeviceId = -1
 
     var perspectivePoints: PerspectivePoints
         get() = _perspectivePoints
@@ -201,13 +200,12 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
         when( event.action ) {
             MotionEvent.ACTION_DOWN -> {
-                if (null == trackedPoint && -1 == currentDeviceId) {
+                if (null == trackedPoint) {
                     val screenPoint = PointF(event.x, event.y)
                     val transform = ViewTransform(bitmap.width, bitmap.height, viewRect)
                     val viewPoints = transform.mapToView(_perspectivePoints)
                     val minDistance = dpToPixels(MIN_POINT_DISTANCE_TO_TRACK)
 
-                    currentDeviceId = event.deviceId
                     trackedOldPosition.set(event.x, event.y)
 
                     when {
@@ -265,7 +263,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
             MotionEvent.ACTION_MOVE -> {
                 val trackedPoint = this.trackedPoint
 
-                if (null != trackedPoint && currentDeviceId == event.deviceId) {
+                if (null != trackedPoint) {
                     val transform = ViewTransform(bitmap.width, bitmap.height, viewRect)
 
                     val dx = event.x - trackedOldPosition.x
@@ -286,9 +284,8 @@ class EditPerspectiveImageView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP -> {
-                if (null != trackedPoint && currentDeviceId == event.deviceId) {
+                if (null != trackedPoint) {
                     trackedPoint = null
-                    currentDeviceId = -1
                     return true
                 }
             }
