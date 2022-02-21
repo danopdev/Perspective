@@ -51,10 +51,6 @@ class MainActivity : AppCompatActivity() {
     private val binding: ActivityMainBinding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private var outputName = Settings.DEFAULT_NAME
 
-    init {
-        BusyDialog.create(this)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -114,32 +110,21 @@ class MainActivity : AppCompatActivity() {
         if (resultCode == RESULT_OK && requestCode == INTENT_OPEN_IMAGE) {
             outputName = Settings.DEFAULT_NAME
 
-            runFakeAsync {
-                data?.data?.let { uri ->
-                    try {
-                        DocumentFile.fromSingleUri(
-                                applicationContext,
-                                uri
-                        )?.name?.let { name ->
-                            if (name.isNotEmpty()) {
-                                val fields = name.split('.')
-                                outputName = fields[0]
-                            }
+            data?.data?.let { uri ->
+                try {
+                    DocumentFile.fromSingleUri(
+                            applicationContext,
+                            uri
+                    )?.name?.let { name ->
+                        if (name.isNotEmpty()) {
+                            val fields = name.split('.')
+                            outputName = fields[0]
                         }
-                    } catch (e: Exception) {
                     }
-
-                    setImage(uri)
+                } catch (e: Exception) {
                 }
-            }
-        }
-    }
 
-    private fun runFakeAsync(l: () -> Unit) {
-        timer(null, false, 500, 500) {
-            this.cancel()
-            runOnUiThread {
-                l.invoke()
+                setImage(uri)
             }
         }
     }
@@ -392,8 +377,17 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(binding.root)
 
-        binding.buttonReset.setOnClickListener { binding.imageEdit.resetPoints() }
-        binding.imageEdit.setOnPerspectiveChanged { clearOutputImage() }
+        binding.buttonReset.setOnClickListener {
+            binding.imageEdit.resetPoints()
+        }
+
+        binding.imageEdit.setOnPerspectiveChanged {
+            clearOutputImage()
+        }
+
+        binding.buttonEdit.setOnClickListener {
+            setEditMode(true)
+        }
 
         binding.buttonPreview.setOnClickListener {
             warpImage()
