@@ -134,6 +134,11 @@ open class TouchImageView @JvmOverloads constructor(
         rect.bottom += newSizeDelta.y - scaleDeltaTopLeft.y
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        resetPosition()
+    }
+
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (null == event) return true
         val bitmap = this._bitmap ?: return true
