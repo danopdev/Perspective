@@ -18,6 +18,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import com.dan.perspective.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.opencv.android.Utils
 import org.opencv.core.CvType.*
 import org.opencv.core.Mat
@@ -129,7 +132,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showToast(message: String) {
-        Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+        runOnUiThread {
+            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun startActivityToOpenImage() {
@@ -230,13 +235,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setImage(uri: Uri) {
-        BusyDialog.show(supportFragmentManager, "Loading")
-        setEditMode(true)
-        inputImage = loadImage(uri)
-        binding.imageEdit.setBitmap(matToBitmap(inputImage))
-        clearOutputImage()
-        updateButtons()
-        BusyDialog.dismiss()
+        runAsync("Loading") {
+            runOnUiThread {
+                setEditMode(true)
+            }
+
+            inputImage = loadImage(uri)
+            val bitmap = matToBitmap(inputImage)
+
+            runOnUiThread {
+                if (null == bitmap) {
+                    showToast("Failed to load the image")
+                }
+
+                binding.imageEdit.setBitmap(bitmap)
+                clearOutputImage()
+                updateButtons()
+            }
+        }
     }
 
     private fun updateButtons() {
@@ -266,98 +282,106 @@ class MainActivity : AppCompatActivity() {
     private fun saveImage() {
         if (outputImage.empty()) return
 
-        BusyDialog.show(supportFragmentManager, "Saving")
+        runAsync("Saving") {
 
-        val outputExtension = settings.outputExtension()
+            val outputExtension = settings.outputExtension()
 
-        try {
-            var fileName = "${outputName}.${outputExtension}"
-            var fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
-            var counter = 0
-            while (File(fileFullPath).exists() && counter < 998) {
-                counter++
-                val counterStr = "%03d".format(counter)
-                fileName = "${outputName}_${counterStr}.${outputExtension}"
-                fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
+            try {
+                var fileName = "${outputName}.${outputExtension}"
+                var fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
+                var counter = 0
+                while (File(fileFullPath).exists() && counter < 998) {
+                    counter++
+                    val counterStr = "%03d".format(counter)
+                    fileName = "${outputName}_${counterStr}.${outputExtension}"
+                    fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
+                }
+
+                val outputRGB = Mat()
+                cvtColor(outputImage, outputRGB, COLOR_BGR2RGB)
+
+                var outputDepth = Settings.DEPTH_AUTO
+
+                if (Settings.OUTPUT_TYPE_JPEG == settings.outputType
+                        || (Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_8_BITS == settings.pngDepth)
+                        || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_8_BITS == settings.tiffDepth)
+                ) {
+                    outputDepth = Settings.DEPTH_8_BITS
+                } else if ((Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_16_BITS == settings.pngDepth)
+                        || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_16_BITS == settings.tiffDepth)
+                ) {
+                    outputDepth = Settings.DEPTH_16_BITS
+                }
+
+                File(fileFullPath).parentFile?.mkdirs()
+
+                val outputParams = MatOfInt()
+
+                if (Settings.OUTPUT_TYPE_JPEG == settings.outputType) {
+                    outputParams.fromArray(Imgcodecs.IMWRITE_JPEG_QUALITY, settings.jpegQuality)
+                }
+
+                Imgcodecs.imwrite(fileFullPath, convertToDepth(outputRGB, outputDepth), outputParams)
+                showToast("Saved to: $fileName")
+
+                //Add it to gallery
+                val values = ContentValues()
+                @Suppress("DEPRECATION")
+                values.put(MediaStore.Images.Media.DATA, fileFullPath)
+                values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
+                contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            } catch (e: Exception) {
+                showToast("Failed to save")
             }
-
-            val outputRGB = Mat()
-            cvtColor(outputImage, outputRGB, COLOR_BGR2RGB)
-
-            var outputDepth = Settings.DEPTH_AUTO
-
-            if ( Settings.OUTPUT_TYPE_JPEG == settings.outputType
-                    || (Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_8_BITS == settings.pngDepth)
-                    || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_8_BITS == settings.tiffDepth)
-            ) {
-                outputDepth = Settings.DEPTH_8_BITS
-            } else if ( (Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_16_BITS == settings.pngDepth)
-                    || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_16_BITS == settings.tiffDepth)
-            ) {
-                outputDepth = Settings.DEPTH_16_BITS
-            }
-
-            File(fileFullPath).parentFile?.mkdirs()
-
-            val outputParams = MatOfInt()
-
-            if (Settings.OUTPUT_TYPE_JPEG == settings.outputType) {
-                outputParams.fromArray(Imgcodecs.IMWRITE_JPEG_QUALITY, settings.jpegQuality )
-            }
-
-            Imgcodecs.imwrite(fileFullPath, convertToDepth(outputRGB, outputDepth), outputParams)
-            showToast("Saved to: $fileName")
-
-            //Add it to gallery
-            val values = ContentValues()
-            @Suppress("DEPRECATION")
-            values.put(MediaStore.Images.Media.DATA, fileFullPath)
-            values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
-            contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-        } catch (e: Exception) {
-            showToast("Failed to save")
         }
+    }
 
-        BusyDialog.dismiss()
+    private fun runAsync( msg: String, callback: ()->Unit ) {
+        BusyDialog.show(supportFragmentManager, msg)
+
+        GlobalScope.launch(Dispatchers.Default) {
+            callback.invoke()
+            runOnUiThread {
+                BusyDialog.dismiss()
+            }
+        }
     }
 
     private fun warpImage() {
         if (inputImage.empty()) return
         if (!outputImage.empty()) return
 
-        BusyDialog.show(supportFragmentManager, "Warping")
+        runAsync( "Warping") {
+            val perspectivePoints = binding.imageEdit.perspectivePoints
 
-        val perspectivePoints = binding.imageEdit.perspectivePoints
+            val srcMat = Mat(4, 1, CV_32FC2)
+            srcMat.put(
+                    0, 0,
+                    perspectivePoints.leftTop.x.toDouble(), perspectivePoints.leftTop.y.toDouble(),
+                    perspectivePoints.rightTop.x.toDouble(), perspectivePoints.rightTop.y.toDouble(),
+                    perspectivePoints.rightBottom.x.toDouble(), perspectivePoints.rightBottom.y.toDouble(),
+                    perspectivePoints.leftBottom.x.toDouble(), perspectivePoints.leftBottom.y.toDouble(),
+            )
 
-        val srcMat = Mat(4, 1, CV_32FC2)
-        srcMat.put(
-                0, 0,
-                perspectivePoints.leftTop.x.toDouble(), perspectivePoints.leftTop.y.toDouble(),
-                perspectivePoints.rightTop.x.toDouble(), perspectivePoints.rightTop.y.toDouble(),
-                perspectivePoints.rightBottom.x.toDouble(), perspectivePoints.rightBottom.y.toDouble(),
-                perspectivePoints.leftBottom.x.toDouble(), perspectivePoints.leftBottom.y.toDouble(),
-        )
+            val destLeft = (perspectivePoints.leftTop.x + perspectivePoints.leftBottom.x) / 2.0
+            val destRight = (perspectivePoints.rightTop.x + perspectivePoints.rightBottom.x) / 2.0
+            val destTop = (perspectivePoints.leftTop.y + perspectivePoints.rightTop.y) / 2.0
+            val destBottom = (perspectivePoints.leftBottom.y + perspectivePoints.rightBottom.y) / 2.0
 
-        val destLeft = (perspectivePoints.leftTop.x + perspectivePoints.leftBottom.x) / 2.0
-        val destRight = (perspectivePoints.rightTop.x + perspectivePoints.rightBottom.x) / 2.0
-        val destTop = (perspectivePoints.leftTop.y + perspectivePoints.rightTop.y) / 2.0
-        val destBottom = (perspectivePoints.leftBottom.y + perspectivePoints.rightBottom.y) / 2.0
+            val destMat = Mat(4, 1, CV_32FC2)
+            destMat.put(
+                    0, 0,
+                    destLeft, destTop,
+                    destRight, destTop,
+                    destRight, destBottom,
+                    destLeft, destBottom
+            )
 
-        val destMat = Mat(4, 1, CV_32FC2)
-        destMat.put(
-                0, 0,
-                destLeft, destTop,
-                destRight, destTop,
-                destRight, destBottom,
-                destLeft, destBottom
-        )
+            val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
+            warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
 
-        val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
-        warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
-
-        binding.imagePreview.setBitmap( matToBitmap(outputImage) )
-
-        BusyDialog.dismiss()
+            binding.imagePreview.setBitmap(matToBitmap(outputImage))
+        }
     }
 
     private fun clearOutputImage() {
