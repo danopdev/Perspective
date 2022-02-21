@@ -231,6 +231,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setImage(uri: Uri) {
         BusyDialog.show(supportFragmentManager, "Loading")
+        setEditMode(true)
         inputImage = loadImage(uri)
         binding.imageEdit.setBitmap(matToBitmap(inputImage))
         clearOutputImage()
