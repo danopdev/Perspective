@@ -323,37 +323,37 @@ class MainActivity : AppCompatActivity() {
 
     private fun warpImage() {
         if (inputImage.empty()) return
-        if (outputImage.empty()) {
-            BusyDialog.show(supportFragmentManager, "Warping")
+        if (!outputImage.empty()) return
 
-            val perspectivePoints = binding.imageEdit.perspectivePoints
+        BusyDialog.show(supportFragmentManager, "Warping")
 
-            val srcMat = Mat(4, 1, CV_32FC2)
-            srcMat.put(
-                    0, 0,
-                    perspectivePoints.leftTop.x.toDouble(), perspectivePoints.leftTop.y.toDouble(),
-                    perspectivePoints.rightTop.x.toDouble(), perspectivePoints.rightTop.y.toDouble(),
-                    perspectivePoints.rightBottom.x.toDouble(), perspectivePoints.rightBottom.y.toDouble(),
-                    perspectivePoints.leftBottom.x.toDouble(), perspectivePoints.leftBottom.y.toDouble(),
-            )
+        val perspectivePoints = binding.imageEdit.perspectivePoints
 
-            val destLeft = (perspectivePoints.leftTop.x + perspectivePoints.leftBottom.x) / 2.0
-            val destRight = (perspectivePoints.rightTop.x + perspectivePoints.rightBottom.x) / 2.0
-            val destTop = (perspectivePoints.leftTop.y + perspectivePoints.rightTop.y) / 2.0
-            val destBottom = (perspectivePoints.leftBottom.y + perspectivePoints.rightBottom.y) / 2.0
+        val srcMat = Mat(4, 1, CV_32FC2)
+        srcMat.put(
+                0, 0,
+                perspectivePoints.leftTop.x.toDouble(), perspectivePoints.leftTop.y.toDouble(),
+                perspectivePoints.rightTop.x.toDouble(), perspectivePoints.rightTop.y.toDouble(),
+                perspectivePoints.rightBottom.x.toDouble(), perspectivePoints.rightBottom.y.toDouble(),
+                perspectivePoints.leftBottom.x.toDouble(), perspectivePoints.leftBottom.y.toDouble(),
+        )
 
-            val destMat = Mat(4, 1, CV_32FC2)
-            destMat.put(
-                    0, 0,
-                    destLeft, destTop,
-                    destRight, destTop,
-                    destRight, destBottom,
-                    destLeft, destBottom
-            )
+        val destLeft = (perspectivePoints.leftTop.x + perspectivePoints.leftBottom.x) / 2.0
+        val destRight = (perspectivePoints.rightTop.x + perspectivePoints.rightBottom.x) / 2.0
+        val destTop = (perspectivePoints.leftTop.y + perspectivePoints.rightTop.y) / 2.0
+        val destBottom = (perspectivePoints.leftBottom.y + perspectivePoints.rightBottom.y) / 2.0
 
-            val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
-            warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
-        }
+        val destMat = Mat(4, 1, CV_32FC2)
+        destMat.put(
+                0, 0,
+                destLeft, destTop,
+                destRight, destTop,
+                destRight, destBottom,
+                destLeft, destBottom
+        )
+
+        val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
+        warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
 
         binding.imagePreview.setBitmap( matToBitmap(outputImage) )
 
