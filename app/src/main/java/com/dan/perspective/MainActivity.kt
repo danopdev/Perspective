@@ -340,7 +340,7 @@ class MainActivity : AppCompatActivity() {
 
         val destLeft = (perspectivePoints.leftTop.x + perspectivePoints.leftBottom.x) / 2.0
         val destRight = (perspectivePoints.rightTop.x + perspectivePoints.rightBottom.x) / 2.0
-        val destTop = (perspectivePoints.leftTop.y + perspectivePoints.rightBottom.y) / 2.0
+        val destTop = (perspectivePoints.leftTop.y + perspectivePoints.rightTop.y) / 2.0
         val destBottom = (perspectivePoints.leftBottom.y + perspectivePoints.rightBottom.y) / 2.0
 
         val destMat = Mat(4, 1, CV_32FC2)
