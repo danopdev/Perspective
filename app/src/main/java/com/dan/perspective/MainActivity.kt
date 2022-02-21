@@ -43,8 +43,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     val settings: Settings by lazy { Settings(this) }
-    private var inputImage = Mat()
-    private var outputImage = Mat()
+    private lateinit var inputImage: Mat
+    private lateinit var outputImage: Mat
     private var menuSave: MenuItem? = null
     private var editMode = true
 
@@ -386,6 +386,9 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             fatalError("Failed to initialize OpenCV")
         }
+
+        inputImage = Mat()
+        outputImage = Mat()
 
         setContentView(binding.root)
 
