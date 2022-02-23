@@ -21,7 +21,6 @@
                 style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginRight="16dp"
                 android:layout_weight="0"
                 android:text="&lt;  Edit"
                 android:textAlignment="textStart"
@@ -39,11 +38,20 @@
                 android:textColor="@color/button_text" />
 
             <Button
+                android:id="@+id/buttonAuto"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Auto"
+                android:textAllCaps="false"
+                android:textColor="@color/button_text" />
+
+            <Button
                 android:id="@+id/buttonPreview"
                 style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="16dp"
                 android:layout_weight="0"
                 android:enabled="false"
                 android:text="Preview &gt;"

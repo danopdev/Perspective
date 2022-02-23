@@ -5,6 +5,8 @@ import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Point
+import android.graphics.PointF
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -22,12 +24,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.opencv.android.Utils
+import org.opencv.core.Core.mean
+import org.opencv.core.Core.minMaxLoc
 import org.opencv.core.CvType.*
 import org.opencv.core.Mat
 import org.opencv.core.MatOfInt
+import org.opencv.core.Size
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc.*
 import java.io.File
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 
 class MainActivity : AppCompatActivity() {
@@ -42,6 +51,8 @@ class MainActivity : AppCompatActivity() {
 
         const val ALPHA_8_TO_16 = 256.0
         const val ALPHA_16_TO_8 = 1.0 / ALPHA_8_TO_16
+
+        const val AUTO_DETECT_WORK_SIZE = 1024
     }
 
     val settings: Settings by lazy { Settings(this) }
@@ -244,11 +255,14 @@ class MainActivity : AppCompatActivity() {
             val bitmap = matToBitmap(inputImage)
 
             runOnUiThread {
+                binding.imageEdit.setBitmap(bitmap)
+
                 if (null == bitmap) {
                     showToast("Failed to load the image")
+                } else {
+                    autoDetectPerspective()
                 }
 
-                binding.imageEdit.setBitmap(bitmap)
                 clearOutputImage()
                 updateButtons()
             }
@@ -258,6 +272,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateButtons() {
         val enabled = !inputImage.empty()
         binding.buttonReset.isEnabled = enabled && editMode
+        binding.buttonAuto.isEnabled = enabled && editMode
         binding.buttonPreview.isEnabled = enabled && editMode
         binding.buttonEdit.isEnabled = enabled && !editMode
         menuSave?.isEnabled = enabled
@@ -389,6 +404,169 @@ class MainActivity : AppCompatActivity() {
         binding.imagePreview.setBitmap(null)
     }
 
+    private fun lineIntersection( line1: Pair<PointF, PointF>, line2: Pair<PointF, PointF> ): PointF? {
+        val delta1 = PointF( line1.second.x - line1.first.x, line1.second.y - line1.first.y )
+        val delta2 = PointF( line2.second.x - line2.first.x, line2.second.y - line2.first.y )
+        val cross = delta1.x * delta2.y - delta1.y * delta2.x
+        if (abs(cross) < 0.00001) return null
+
+        val ref = PointF( line2.first.x - line1.first.y, line2.first.y - line1.first.y )
+        val t = ( ref.x * delta2.y - ref.y * delta2.x ) / cross
+        return PointF( line1.first.x + delta1.x * t, line1.first.y + delta1.y * t )
+    }
+
+    private fun toPointF( point: Point, scaleX: Float, scaleY: Float ): PointF {
+        return PointF(
+                point.x * scaleX,
+                point.y * scaleY
+        )
+    }
+
+    private fun toLineF( line: Pair<Point, Point>, scaleX: Float, scaleY: Float ): Pair<PointF, PointF> {
+        return Pair(
+                toPointF( line.first, scaleX, scaleY ),
+                toPointF( line.second, scaleX, scaleY ),
+        )
+    }
+
+    private fun autoDetectPerspectiveAsync() {
+        val minValue = AUTO_DETECT_WORK_SIZE * EditPerspectiveImageView.BORDER / 100
+        val maxValue = AUTO_DETECT_WORK_SIZE - minValue
+
+        val image = Mat()
+        resize(
+                inputImage,
+                image,
+                Size( AUTO_DETECT_WORK_SIZE.toDouble(), AUTO_DETECT_WORK_SIZE.toDouble()) ,
+                0.0,
+                0.0,
+                INTER_AREA
+        )
+
+        cvtColor( image, image, COLOR_BGR2GRAY )
+
+        //blur reduce number of edge detected
+        blur( image, image, Size(5.0, 5.0) )
+
+        val meanValue = mean(image).`val`[0].toInt()
+        val minMax = minMaxLoc(image)
+        val minVal = minMax.minVal
+        val maxVal = minMax.maxVal
+        val lowerThreshold = (minVal + meanValue) / 2
+        val upperThreshold = (maxVal + meanValue) / 2
+
+        val edges = Mat()
+        Canny( image, edges, lowerThreshold, upperThreshold )
+
+        val hLines = mutableListOf<Pair<Point, Point>>()
+        val vLines = mutableListOf<Pair<Point, Point>>()
+
+        for( threshold in 200 downTo 100 step 20 ) {
+            hLines.clear()
+            vLines.clear()
+
+            val lines = Mat()
+            HoughLinesP(edges, lines, 1.0, PI / 1024, threshold, 150.0, 100.0)
+            if (lines.empty()) continue
+
+            for (lineIndex in 0 until lines.rows()) {
+                val startPoint = Point( lines.get(lineIndex, 0)[0].toInt(), lines.get(lineIndex, 0)[1].toInt() )
+                val endPoint = Point( lines.get(lineIndex, 0)[2].toInt(), lines.get(lineIndex, 0)[3].toInt() )
+                val delta = Point( abs(endPoint.x - startPoint.x), abs(endPoint.y - startPoint.y) )
+                val ratio = min(delta.x, delta.y).toFloat() / max(delta.x, delta.y)
+
+                // avoid lines that are too harsh
+                if (ratio >= 0.5) continue
+
+                if (delta.x > delta.y) {
+                    if (startPoint.y >= minValue && endPoint.y >= minValue && startPoint.y <= maxValue && endPoint.y <= maxValue) {
+                        hLines.add( Pair(startPoint, endPoint) )
+                    }
+                } else {
+                    if (startPoint.x >= minValue && endPoint.x >= minValue && startPoint.x <= maxValue && endPoint.x <= maxValue) {
+                        vLines.add( Pair(startPoint, endPoint) )
+                    }
+                }
+            }
+
+            if (hLines.size >= 2 && vLines.size >= 2) break
+        }
+
+        val hLineTop: Pair<Point, Point>
+        val hLineBottom: Pair<Point, Point>
+        val vLineLeft: Pair<Point, Point>
+        val vLineRight: Pair<Point, Point>
+
+        when {
+            hLines.isEmpty() -> {
+                hLineTop = Pair( Point( minValue, minValue ), Point( maxValue, minValue ) )
+                hLineBottom = Pair( Point( minValue, maxValue ), Point( maxValue, maxValue ) )
+            }
+
+            1 == hLines.size -> {
+                if ((hLines[0].first.y / 2) < (AUTO_DETECT_WORK_SIZE / 2)) {
+                    hLineTop = hLines[0]
+                    hLineBottom = Pair( Point( minValue, maxValue ), Point( maxValue, maxValue ) )
+                } else {
+                    hLineTop = Pair( Point( minValue, minValue ), Point( maxValue, minValue ) )
+                    hLineBottom = hLines[0]
+                }
+            }
+
+            else -> {
+                hLines.sortBy { line -> line.first.y }
+                hLineTop = hLines.first()
+                hLineBottom = hLines.last()
+            }
+        }
+
+        when {
+            vLines.isEmpty() -> {
+                vLineLeft = Pair( Point( minValue, minValue ), Point( minValue, maxValue ) )
+                vLineRight = Pair( Point( maxValue, minValue ), Point( maxValue, maxValue ) )
+            }
+
+            1 == vLines.size -> {
+                if ((vLines[0].first.x / 2) < (AUTO_DETECT_WORK_SIZE / 2)) {
+                    vLineLeft = vLines[0]
+                    vLineRight = Pair( Point( maxValue, minValue ), Point( maxValue, maxValue ) )
+                } else {
+                    vLineLeft = Pair( Point( minValue, minValue ), Point( minValue, maxValue ) )
+                    vLineRight = vLines[0]
+                }
+            }
+
+            else -> {
+                vLines.sortBy { line -> line.first.x }
+                vLineLeft = vLines.first()
+                vLineRight = vLines.last()
+            }
+        }
+
+        val scaleX = inputImage.cols().toFloat() / AUTO_DETECT_WORK_SIZE
+        val scaleY = inputImage.rows().toFloat() / AUTO_DETECT_WORK_SIZE
+
+        val hLineTopF = toLineF(hLineTop, scaleX, scaleY)
+        val hLineBottomF = toLineF(hLineBottom, scaleX, scaleY)
+        val vLineLeftF = toLineF(vLineLeft, scaleX, scaleY)
+        val vLineRightF = toLineF(vLineRight, scaleX, scaleY)
+
+        val leftTop = lineIntersection( vLineLeftF, hLineTopF ) ?: toPointF( Point(minValue, minValue), scaleX, scaleY )
+        val leftBottom = lineIntersection( vLineLeftF, hLineBottomF ) ?: toPointF( Point(minValue, maxValue), scaleX, scaleY )
+        val rightTop = lineIntersection( vLineRightF, hLineTopF ) ?: toPointF( Point(maxValue, minValue), scaleX, scaleY )
+        val rightBottom = lineIntersection( vLineRightF, hLineBottomF ) ?: toPointF( Point(maxValue, maxValue), scaleX, scaleY )
+
+        binding.imageEdit.perspectivePoints = PerspectivePoints( leftTop, leftBottom, rightTop, rightBottom )
+    }
+
+    private fun autoDetectPerspective() {
+        if (inputImage.empty()) return
+
+        runAsync("Auto detect") {
+            autoDetectPerspectiveAsync()
+        }
+    }
+
     private fun onPermissionsAllowed() {
         try {
             System.loadLibrary("opencv_java4")
@@ -400,9 +578,14 @@ class MainActivity : AppCompatActivity() {
         outputImage = Mat()
 
         setContentView(binding.root)
+        updateButtons()
 
         binding.buttonReset.setOnClickListener {
             binding.imageEdit.resetPoints()
+        }
+
+        binding.buttonAuto.setOnClickListener {
+            autoDetectPerspective()
         }
 
         binding.imageEdit.setOnPerspectiveChanged {
