@@ -9,6 +9,7 @@ import android.graphics.Point
 import android.graphics.PointF
 import android.net.Uri
 import android.os.Bundle
+import android.os.Parcelable
 import android.provider.MediaStore
 import android.view.Menu
 import android.view.MenuItem
@@ -121,24 +122,7 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
 
         if (resultCode == RESULT_OK && requestCode == INTENT_OPEN_IMAGE) {
-            outputName = Settings.DEFAULT_NAME
-
-            data?.data?.let { uri ->
-                try {
-                    DocumentFile.fromSingleUri(
-                            applicationContext,
-                            uri
-                    )?.name?.let { name ->
-                        if (name.isNotEmpty()) {
-                            val fields = name.split('.')
-                            outputName = fields[0]
-                        }
-                    }
-                } catch (e: Exception) {
-                }
-
-                setImage(uri)
-            }
+            data?.data?.let { uri -> setImage(uri) }
         }
     }
 
@@ -260,6 +244,21 @@ class MainActivity : AppCompatActivity() {
                 if (null == bitmap) {
                     showToast("Failed to load the image")
                 } else {
+                    outputName = Settings.DEFAULT_NAME
+
+                    try {
+                        DocumentFile.fromSingleUri(
+                                applicationContext,
+                                uri
+                        )?.name?.let { name ->
+                            if (name.isNotEmpty()) {
+                                val fields = name.split('.')
+                                outputName = fields[0]
+                            }
+                        }
+                    } catch (e: Exception) {
+                    }
+
                     autoDetectPerspective()
                 }
 
@@ -600,5 +599,20 @@ class MainActivity : AppCompatActivity() {
             warpImage()
             setEditMode(false)
         }
+
+        var initialUri: Uri? = null
+
+        if (null != intent && null != intent.action) {
+            if (Intent.ACTION_SEND == intent.action) {
+                val extraStream = intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM)
+                if (null != extraStream) {
+                    initialUri = extraStream as Uri
+                }
+            } else if(Intent.ACTION_VIEW == intent.action){
+                initialUri = intent.data
+            }
+        }
+
+        if (null != initialUri) setImage(initialUri)
     }
 }
