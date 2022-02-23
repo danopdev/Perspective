@@ -43,7 +43,7 @@ def detectPerspective( imageFile ):
     yMin = safeBorder
     yMax = workSize - yMin
 
-    image = cv.resize(originalImage, (WORK_SIZE,WORK_SIZE))
+    image = cv.resize(originalImage, (WORK_SIZE,WORK_SIZE), interpolation=cv.INTER_AREA)
     image = cv.blur(image, (3, 3))
 
     h_lines = []
