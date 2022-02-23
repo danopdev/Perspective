@@ -63,7 +63,7 @@ def detectPerspective( imageFile ):
         h_lines.clear()
         v_lines.clear()
 
-        lines = cv.HoughLinesP(edges, 1, np.pi / 1024, threshold, None, 150, 100)
+        lines = cv.HoughLinesP(edges, 1, np.pi / 1024, threshold, None, 300, 100)
         if lines is not None:
             for i in range(0, len(lines)):
                 line = lines[i][0]
