@@ -485,7 +485,7 @@ class MainActivity : AppCompatActivity() {
         val cross = delta1.x * delta2.y - delta1.y * delta2.x
         if (abs(cross) < 0.00001) return null
 
-        val ref = PointF( line2.first.x - line1.first.y, line2.first.y - line1.first.y )
+        val ref = PointF( line2.first.x - line1.first.x, line2.first.y - line1.first.y )
         val t = ( ref.x * delta2.y - ref.y * delta2.x ) / cross
         return PointF( line1.first.x + delta1.x * t, line1.first.y + delta1.y * t )
     }
@@ -521,7 +521,7 @@ class MainActivity : AppCompatActivity() {
         cvtColor( image, image, COLOR_BGR2GRAY )
 
         //blur reduce number of edge detected
-        blur( image, image, Size(5.0, 5.0) )
+        blur( image, image, Size(3.0, 3.0) )
 
         val meanValue = mean(image).`val`[0].toInt()
         val minMax = minMaxLoc(image)
@@ -541,7 +541,7 @@ class MainActivity : AppCompatActivity() {
             vLines.clear()
 
             val lines = Mat()
-            HoughLinesP(edges, lines, 1.0, PI / 1024, threshold, 150.0, 100.0)
+            HoughLinesP(edges, lines, 1.0, PI / 1024, threshold, 300.0, 100.0)
             if (lines.empty()) continue
 
             for (lineIndex in 0 until lines.rows()) {
@@ -551,7 +551,7 @@ class MainActivity : AppCompatActivity() {
                 val ratio = min(delta.x, delta.y).toFloat() / max(delta.x, delta.y)
 
                 // avoid lines that are too harsh
-                if (ratio >= 0.5) continue
+                if (ratio >= 0.3) continue
 
                 if (delta.x > delta.y) {
                     if (startPoint.y >= minValue && endPoint.y >= minValue && startPoint.y <= maxValue && endPoint.y <= maxValue) {
