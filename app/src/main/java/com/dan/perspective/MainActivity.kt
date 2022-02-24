@@ -308,16 +308,7 @@ class MainActivity : AppCompatActivity() {
                 Bitmap.Config.ARGB_8888
         )
 
-        //make sure it's 8 bits per channel
-        val image8Bits: Mat
-        if (CV_16UC3 == image.type()) {
-            image8Bits = Mat()
-            image.convertTo(image8Bits, CV_8UC3, ALPHA_16_TO_8)
-        } else {
-            image8Bits = image
-        }
-
-        Utils.matToBitmap(image8Bits, bitmap)
+        Utils.matToBitmap( convertToDepth( image, Settings.DEPTH_8_BITS ) , bitmap)
         return bitmap
     }
 
