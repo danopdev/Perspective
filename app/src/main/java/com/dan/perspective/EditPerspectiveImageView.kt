@@ -85,6 +85,8 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     private var trackedAllowedRect = RectF()
     private val trackedOldPosition = PointF()
     private var onPerspectiveChanged: (()->Unit)? = null
+    private var onEditStart: (()->Unit)? = null
+    private var onEditEnd: (()->Unit)? = null
 
     var perspectivePoints: PerspectivePoints
         get() = _perspectivePoints
@@ -95,6 +97,14 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
     fun setOnPerspectiveChanged( listener: (()->Unit)? ) {
         onPerspectiveChanged = listener
+    }
+
+    fun setOnEditStart( listener: (()->Unit)? ) {
+        onEditStart = listener
+    }
+
+    fun setOnEditEnd( listener: (()->Unit)? ) {
+        onEditEnd = listener
     }
 
     override fun setBitmap(bitmap: Bitmap? ) {
@@ -257,6 +267,8 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                             )
                         }
                     }
+
+                    if (null != trackedPoint) onEditStart?.invoke()
                 }
             }
 
@@ -286,6 +298,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> {
                 if (null != trackedPoint) {
                     trackedPoint = null
+                    onEditEnd?.invoke()
                     return true
                 }
             }

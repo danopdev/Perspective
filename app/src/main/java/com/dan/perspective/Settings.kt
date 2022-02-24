@@ -35,6 +35,7 @@ class Settings( private val activity: Activity) {
     var pngDepth = DEPTH_AUTO
     var tiffDepth = DEPTH_AUTO
     var engineDepth = DEPTH_AUTO
+    var hapticFeedback = true
 
     init {
         loadProperties()

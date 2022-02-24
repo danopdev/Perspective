@@ -44,6 +44,7 @@ class SettingsDialog(private val activity: MainActivity ) : DialogFragment() {
         binding.spinnerPngDepth.setSelection(activity.settings.pngDepth)
         binding.spinnerTiffDepth.setSelection(activity.settings.tiffDepth)
         binding.spinnerEngineDepth.setSelection(activity.settings.engineDepth)
+        binding.switchHapticFeedback.isChecked = activity.settings.hapticFeedback
 
         binding.btnCancel.setOnClickListener { dismiss() }
 
@@ -56,6 +57,7 @@ class SettingsDialog(private val activity: MainActivity ) : DialogFragment() {
             activity.settings.pngDepth = binding.spinnerPngDepth.selectedItemPosition
             activity.settings.tiffDepth = binding.spinnerTiffDepth.selectedItemPosition
             activity.settings.engineDepth = binding.spinnerEngineDepth.selectedItemPosition
+            activity.settings.hapticFeedback = binding.switchHapticFeedback.isChecked
 
             activity.settings.saveProperties()
             dismiss()

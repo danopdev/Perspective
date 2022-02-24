@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
 import android.provider.MediaStore
+import android.view.HapticFeedbackConstants
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -70,6 +71,12 @@ class MainActivity : AppCompatActivity() {
 
         if (!askPermissions())
             onPermissionsAllowed()
+    }
+
+    private fun giveHapticFeedback(view: View) {
+        if (settings.hapticFeedback) {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
+        }
     }
 
     private fun setEditMode(enabled: Boolean) {
@@ -589,6 +596,10 @@ class MainActivity : AppCompatActivity() {
 
         binding.imageEdit.setOnPerspectiveChanged {
             clearOutputImage()
+        }
+
+        binding.imageEdit.setOnEditStart {
+            giveHapticFeedback( binding.imageEdit )
         }
 
         binding.buttonEdit.setOnClickListener {
