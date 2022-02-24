@@ -527,7 +527,7 @@ class MainActivity : AppCompatActivity() {
 
         val image = Mat()
         resize(
-                inputImage,
+                convertToDepth( inputImage, Settings.DEPTH_8_BITS ),
                 image,
                 Size( AUTO_DETECT_WORK_SIZE.toDouble(), AUTO_DETECT_WORK_SIZE.toDouble()) ,
                 0.0,
