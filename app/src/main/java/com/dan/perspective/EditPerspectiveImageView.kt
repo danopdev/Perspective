@@ -87,6 +87,13 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         const val POINT_RADIUS = 15 // dp
         const val LINE_WIDTH = 5 //dp
         const val MIN_POINT_DISTANCE_TO_TRACK = 20 //dp
+
+        fun dpToPixels( value: Int ): Float {
+            return TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    value.toFloat(),
+                    Resources.getSystem().displayMetrics)
+        }
     }
 
     private val transform = ViewTransform()
@@ -122,13 +129,6 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     override fun setBitmap(bitmap: Bitmap? ) {
         super.setBitmap(bitmap)
         resetPoints()
-    }
-
-    private fun dpToPixels( value: Int ): Float {
-        return TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                value.toFloat(),
-                Resources.getSystem().displayMetrics)
     }
 
     fun resetPoints() {

@@ -1,6 +1,7 @@
 package com.dan.perspective
 
 import android.Manifest
+import android.animation.Animator
 import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,6 +16,7 @@ import android.view.HapticFeedbackConstants
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.animation.AccelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -64,6 +66,30 @@ class MainActivity : AppCompatActivity() {
     private var menuSave: MenuItem? = null
     private var editMode = true
 
+    private val previewAnimatorListener = object : Animator.AnimatorListener {
+        override fun onAnimationStart(p0: Animator?) {
+            if (!editMode) {
+                binding.layoutPreview.visibility = View.VISIBLE
+            } else {
+                binding.layoutEdit.visibility = View.VISIBLE
+            }
+        }
+
+        override fun onAnimationEnd(p0: Animator?) {
+            if (editMode) {
+                binding.layoutPreview.visibility = View.GONE
+            } else {
+                binding.layoutEdit.visibility = View.GONE
+            }
+        }
+
+        override fun onAnimationCancel(p0: Animator?) {
+        }
+
+        override fun onAnimationRepeat(p0: Animator?) {
+        }
+    }
+
     private val binding: ActivityMainBinding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private var outputName = Settings.DEFAULT_NAME
 
@@ -84,7 +110,48 @@ class MainActivity : AppCompatActivity() {
         if (enabled == editMode) return
         editMode = enabled
         updateButtons()
-        binding.imagePreview.visibility = if (!editMode) View.VISIBLE else View.GONE
+
+        if (editMode) {
+            val editAnimation = binding.layoutEdit.animate()
+                    .translationX(0f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .alpha(1f)
+                    .setInterpolator(AccelerateInterpolator())
+                    .setDuration(200L)
+
+            val previewAnimation = binding.layoutPreview.animate()
+                    .translationX(EditPerspectiveImageView.dpToPixels(100))
+                    .scaleX(1.2f)
+                    .scaleY(1.2f)
+                    .alpha(0f)
+                    .setListener(previewAnimatorListener)
+                    .setInterpolator(AccelerateInterpolator())
+                    .setDuration(200L)
+
+            editAnimation.start()
+            previewAnimation.start()
+        } else {
+            val editAnimation = binding.layoutEdit.animate()
+                    .translationX(EditPerspectiveImageView.dpToPixels(-100))
+                    .scaleX(0.8f)
+                    .scaleY(0.8f)
+                    .alpha(0f)
+                    .setInterpolator(AccelerateInterpolator())
+                    .setDuration(200L)
+
+            val previewAnimation = binding.layoutPreview.animate()
+                    .translationX(0f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .alpha(1f)
+                    .setListener(previewAnimatorListener)
+                    .setInterpolator(AccelerateInterpolator())
+                    .setDuration(200L)
+
+            editAnimation.start()
+            previewAnimation.start()
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -279,17 +346,9 @@ class MainActivity : AppCompatActivity() {
     private fun updateButtons() {
         val enabled = !inputImage.empty()
 
-        binding.buttonReset.isEnabled = enabled && editMode
-        binding.buttonReset.isVisible = editMode
-
-        binding.buttonAuto.isEnabled = enabled && editMode
-        binding.buttonAuto.isVisible = editMode
-
-        binding.buttonPreview.isEnabled = enabled && editMode
-        binding.buttonPreview.isVisible = editMode
-
-        binding.buttonEdit.isEnabled = enabled && !editMode
-        binding.buttonEdit.isVisible = !editMode
+        binding.buttonReset.isEnabled = enabled
+        binding.buttonAuto.isEnabled = enabled
+        binding.buttonPreview.isEnabled = enabled
 
         menuSave?.isEnabled = enabled
     }
@@ -572,7 +631,10 @@ class MainActivity : AppCompatActivity() {
         val rightTop = lineIntersection( vLineRightF, hLineTopF ) ?: toPointF( Point(maxValue, minValue), scaleX, scaleY )
         val rightBottom = lineIntersection( vLineRightF, hLineBottomF ) ?: toPointF( Point(maxValue, maxValue), scaleX, scaleY )
 
-        binding.imageEdit.perspectivePoints = PerspectivePoints( leftTop, leftBottom, rightTop, rightBottom )
+        runOnUiThread {
+            clearOutputImage()
+            binding.imageEdit.perspectivePoints = PerspectivePoints(leftTop, leftBottom, rightTop, rightBottom)
+        }
     }
 
     private fun autoDetectPerspective() {
@@ -617,8 +679,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.buttonPreview.setOnClickListener {
-            warpImage()
             setEditMode(false)
+            warpImage()
         }
 
         var initialUri: Uri? = null
