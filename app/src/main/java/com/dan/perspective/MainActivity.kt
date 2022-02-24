@@ -20,6 +20,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.documentfile.provider.DocumentFile
 import com.dan.perspective.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
@@ -277,10 +278,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateButtons() {
         val enabled = !inputImage.empty()
+
         binding.buttonReset.isEnabled = enabled && editMode
+        binding.buttonReset.isVisible = editMode
+
         binding.buttonAuto.isEnabled = enabled && editMode
+        binding.buttonAuto.isVisible = editMode
+
         binding.buttonPreview.isEnabled = enabled && editMode
+        binding.buttonPreview.isVisible = editMode
+
         binding.buttonEdit.isEnabled = enabled && !editMode
+        binding.buttonEdit.isVisible = !editMode
+
         menuSave?.isEnabled = enabled
     }
 
