@@ -117,6 +117,7 @@ class MainActivity : AppCompatActivity() {
                     .scaleY(1f)
                     .alpha(1f)
                     .setInterpolator(AccelerateInterpolator())
+                    .setStartDelay(100L)
                     .setDuration(200L)
 
             val previewAnimation = binding.layoutPreview.animate()
@@ -128,8 +129,8 @@ class MainActivity : AppCompatActivity() {
                     .setInterpolator(AccelerateInterpolator())
                     .setDuration(200L)
 
-            editAnimation.start()
             previewAnimation.start()
+            editAnimation.start()
         } else {
             val editAnimation = binding.layoutEdit.animate()
                     .translationX(EditPerspectiveImageView.dpToPixels(-100))
@@ -146,6 +147,7 @@ class MainActivity : AppCompatActivity() {
                     .alpha(1f)
                     .setListener(previewAnimatorListener)
                     .setInterpolator(AccelerateInterpolator())
+                    .setStartDelay(100L)
                     .setDuration(200L)
 
             editAnimation.start()
