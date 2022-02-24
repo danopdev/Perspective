@@ -22,7 +22,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
 import androidx.documentfile.provider.DocumentFile
 import com.dan.perspective.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
