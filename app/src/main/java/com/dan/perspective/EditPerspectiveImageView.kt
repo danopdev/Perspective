@@ -26,13 +26,22 @@ data class PerspectivePoints(
 }
 
 
-private class ViewTransform(bitmapWidth: Int, bitmapHeight: Int, viewRect: RectF) {
-    private val scale = PointF()
-    private val delta = PointF()
+private class ViewTransform(bitmapWidth: Int = 1, bitmapHeight: Int = 1, viewRect: RectF = RectF()) {
+    private val scale = PointF(1f, 1f)
+    private val delta = PointF( 0f, 0f)
 
     init {
-        delta.set( viewRect.left, viewRect.top )
-        scale.set( viewRect.width() / bitmapWidth, viewRect.height() / bitmapHeight )
+        set( bitmapWidth, bitmapHeight, viewRect )
+    }
+
+    fun set( bitmapWidth: Int, bitmapHeight: Int, viewRect: RectF ) {
+        if (bitmapWidth <= 0 || bitmapHeight <= 0) {
+            delta.set( 0f, 0f )
+            scale.set( 1f, 1f )
+        } else {
+            delta.set( viewRect.left, viewRect.top )
+            scale.set( viewRect.width() / bitmapWidth, viewRect.height() / bitmapHeight )
+        }
     }
 
     fun mapToView( point: PointF ): PointF {
@@ -68,6 +77,7 @@ private class ViewTransform(bitmapWidth: Int, bitmapHeight: Int, viewRect: RectF
     }
 }
 
+
 class EditPerspectiveImageView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : TouchImageView(context, attrs, defStyleAttr) {
@@ -79,11 +89,13 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         const val MIN_POINT_DISTANCE_TO_TRACK = 20 //dp
     }
 
+    private val transform = ViewTransform()
     private val _perspectivePoints = PerspectivePoints()
     private var trackedPoint: PointF? = null
     private var trackedViewPoint = PointF()
     private var trackedAllowedRect = RectF()
     private val trackedOldPosition = PointF()
+    private val paint = Paint()
     private var onPerspectiveChanged: (()->Unit)? = null
     private var onEditStart: (()->Unit)? = null
     private var onEditEnd: (()->Unit)? = null
@@ -178,10 +190,9 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
         val bitmap = super.getBitmap() ?: return
         val viewRect = super.viewRect
-        val transform = ViewTransform( bitmap.width, bitmap.height, viewRect )
-        val viewPoints = transform.mapToView( _perspectivePoints )
 
-        val paint = Paint()
+        transform.set( bitmap.width, bitmap.height, viewRect )
+        val viewPoints = transform.mapToView( _perspectivePoints )
 
         paint.strokeCap = Paint.Cap.ROUND
         paint.style = Paint.Style.FILL_AND_STROKE
@@ -211,8 +222,9 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         when( event.action ) {
             MotionEvent.ACTION_DOWN -> {
                 if (null == trackedPoint) {
+                    transform.set(bitmap.width, bitmap.height, viewRect)
+
                     val screenPoint = PointF(event.x, event.y)
-                    val transform = ViewTransform(bitmap.width, bitmap.height, viewRect)
                     val viewPoints = transform.mapToView(_perspectivePoints)
                     val minDistance = dpToPixels(MIN_POINT_DISTANCE_TO_TRACK)
 
@@ -276,7 +288,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                 val trackedPoint = this.trackedPoint
 
                 if (null != trackedPoint) {
-                    val transform = ViewTransform(bitmap.width, bitmap.height, viewRect)
+                    transform.set(bitmap.width, bitmap.height, viewRect)
 
                     val dx = event.x - trackedOldPosition.x
                     val dy = event.y - trackedOldPosition.y

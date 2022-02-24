@@ -31,6 +31,13 @@ open class TouchImageView @JvmOverloads constructor(
     private val actionScaleCenter = PointF()
     private val actionMove = PointF()
     private val _viewRect = RectF()
+    private val bgPaint = Paint()
+    private val widgetRect = Rect()
+
+    init {
+        bgPaint.color = Color.WHITE
+        bgPaint.style = Paint.Style.FILL
+    }
 
     val viewRect: RectF
         get() = _viewRect
@@ -136,6 +143,8 @@ open class TouchImageView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
+        widgetRect.right = w
+        widgetRect.bottom = h
         resetPosition()
     }
 
@@ -210,12 +219,6 @@ open class TouchImageView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (null == canvas) return
 
-        val widgetRect = Rect(0, 0, width, height)
-
-        //the background is white
-        val bgPaint = Paint()
-        bgPaint.color = Color.WHITE
-        bgPaint.style = Paint.Style.FILL
         canvas.drawRect(widgetRect, bgPaint)
 
         val bitmap = this._bitmap
@@ -226,7 +229,7 @@ open class TouchImageView @JvmOverloads constructor(
             noImage.setTint(Color.GRAY)
             noImage.draw(canvas)
         } else {
-            canvas.drawBitmap( bitmap, Rect(0,0,bitmap.width, bitmap.height), _viewRect.toRect(), null )
+            canvas.drawBitmap( bitmap, null, _viewRect.toRect(), null )
         }
     }
 }
