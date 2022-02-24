@@ -65,13 +65,27 @@ class MainActivity : AppCompatActivity() {
     private var menuSave: MenuItem? = null
     private var editMode = true
 
-    private val previewAnimatorListener = object : Animator.AnimatorListener {
+    private val firstAnimatorListener = object : Animator.AnimatorListener {
         override fun onAnimationStart(p0: Animator?) {
             if (!editMode) {
                 binding.layoutPreview.visibility = View.VISIBLE
             } else {
                 binding.layoutEdit.visibility = View.VISIBLE
             }
+        }
+
+        override fun onAnimationEnd(p0: Animator?) {
+        }
+
+        override fun onAnimationCancel(p0: Animator?) {
+        }
+
+        override fun onAnimationRepeat(p0: Animator?) {
+        }
+    }
+
+    private val lastAnimatorListener = object : Animator.AnimatorListener {
+        override fun onAnimationStart(p0: Animator?) {
         }
 
         override fun onAnimationEnd(p0: Animator?) {
@@ -116,6 +130,7 @@ class MainActivity : AppCompatActivity() {
                     .scaleX(1f)
                     .scaleY(1f)
                     .alpha(1f)
+                    .setListener(lastAnimatorListener)
                     .setInterpolator(AccelerateInterpolator())
                     .setStartDelay(100L)
                     .setDuration(200L)
@@ -125,7 +140,7 @@ class MainActivity : AppCompatActivity() {
                     .scaleX(1.2f)
                     .scaleY(1.2f)
                     .alpha(0f)
-                    .setListener(previewAnimatorListener)
+                    .setListener(firstAnimatorListener)
                     .setInterpolator(AccelerateInterpolator())
                     .setDuration(200L)
 
@@ -137,6 +152,7 @@ class MainActivity : AppCompatActivity() {
                     .scaleX(0.8f)
                     .scaleY(0.8f)
                     .alpha(0f)
+                    .setListener(firstAnimatorListener)
                     .setInterpolator(AccelerateInterpolator())
                     .setDuration(200L)
 
@@ -145,7 +161,7 @@ class MainActivity : AppCompatActivity() {
                     .scaleX(1f)
                     .scaleY(1f)
                     .alpha(1f)
-                    .setListener(previewAnimatorListener)
+                    .setListener(lastAnimatorListener)
                     .setInterpolator(AccelerateInterpolator())
                     .setStartDelay(100L)
                     .setDuration(200L)
