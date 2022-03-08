@@ -85,6 +85,7 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     companion object {
         const val BORDER = 5 //percent
         const val POINT_RADIUS = 15 // dp
+        const val TRACKED_POINT_RADIUS = 20 // dp
         const val LINE_WIDTH = 5 //dp
         const val MIN_POINT_DISTANCE_TO_TRACK = 20 //dp
 
@@ -206,10 +207,20 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         val radius = dpToPixels(POINT_RADIUS)
         paint.style = Paint.Style.FILL
         paint.color = Color.argb( 128, 0, 0, 255 )
-        drawPoint( viewPoints.leftTop, radius, canvas, paint )
-        drawPoint( viewPoints.leftBottom, radius, canvas, paint )
-        drawPoint( viewPoints.rightTop, radius, canvas, paint )
-        drawPoint( viewPoints.rightBottom, radius, canvas, paint )
+
+        val trackedPoint = this.trackedPoint
+
+        if (_perspectivePoints.leftTop != trackedPoint) drawPoint( viewPoints.leftTop, radius, canvas, paint )
+        if (_perspectivePoints.leftBottom != trackedPoint) drawPoint( viewPoints.leftBottom, radius, canvas, paint )
+        if (_perspectivePoints.rightTop != trackedPoint) drawPoint( viewPoints.rightTop, radius, canvas, paint )
+        if (_perspectivePoints.rightBottom != trackedPoint) drawPoint( viewPoints.rightBottom, radius, canvas, paint )
+
+        if (null != trackedPoint) {
+            val trackedViewPoint = transform.mapToView(trackedPoint)
+            val radiusTracked = dpToPixels(TRACKED_POINT_RADIUS)
+            paint.style = Paint.Style.STROKE
+            drawPoint( trackedViewPoint, radiusTracked, canvas, paint )
+        }
     }
 
     private fun distance( pointA: PointF, pointB: PointF ): Float =
