@@ -105,6 +105,7 @@ class MainActivity : AppCompatActivity() {
 
     private val binding: ActivityMainBinding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private var outputName = Settings.DEFAULT_NAME
+    private var inputUri: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -366,6 +367,7 @@ class MainActivity : AppCompatActivity() {
         val image = OpenCVLoadImageFromUri.load(uri, contentResolver)
         if (null == image || image.empty()) return Mat()
 
+        inputUri = uri
         val imageRGB = Mat()
 
         when(image.type()) {
@@ -420,14 +422,21 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Imgcodecs.imwrite(fileFullPath, convertToDepth(outputRGB, outputDepth), outputParams)
-                showToast("Saved to: $fileName")
 
-                //Add it to gallery
-                val values = ContentValues()
-                @Suppress("DEPRECATION")
-                values.put(MediaStore.Images.Media.DATA, fileFullPath)
-                values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
-                contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                inputUri?.let { uri ->
+                    ExifTools.copyExif( contentResolver, uri, fileFullPath )
+                }
+
+                runOnUiThread {
+                    //Add it to gallery
+                    val values = ContentValues()
+                    @Suppress("DEPRECATION")
+                    values.put(MediaStore.Images.Media.DATA, fileFullPath)
+                    values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
+                    contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                }
+
+                showToast("Saved to: $fileName")
             } catch (e: Exception) {
                 showToast("Failed to save")
             }
