@@ -146,8 +146,8 @@ open class TouchImageView @JvmOverloads constructor(
         val widthSize = MeasureSpec.getSize(widthMeasureSpec)
         val heightSize = MeasureSpec.getSize(heightMeasureSpec)
 
-        var width
-        var height
+        var width: Int
+        var height: Int
 
         val bitmap = _bitmap
 
