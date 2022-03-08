@@ -478,7 +478,9 @@ class MainActivity : AppCompatActivity() {
             val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
             warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
 
-            binding.imagePreview.setBitmap(matToBitmap(outputImage))
+            runOnUiThread {
+                binding.imagePreview.setBitmap(matToBitmap(outputImage))
+            }
         }
     }
 

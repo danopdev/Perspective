@@ -42,12 +42,12 @@ open class TouchImageView @JvmOverloads constructor(
     val viewRect: RectF
         get() = _viewRect
 
-    private val scaleGestureDetector = ScaleGestureDetector(context, object: ScaleGestureDetector.OnScaleGestureListener {
+    private val scaleGestureDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.OnScaleGestureListener {
         override fun onScale(detector: ScaleGestureDetector?): Boolean {
             if (null == detector) return true
             action = max(action, ACTION_SCALE)
             actionScale = detector.scaleFactor
-            actionScaleCenter.set( detector.focusX, detector.focusY )
+            actionScaleCenter.set(detector.focusX, detector.focusY)
             return true
         }
 
@@ -59,7 +59,7 @@ open class TouchImageView @JvmOverloads constructor(
         }
     })
 
-    private val gestureDetector = GestureDetector( context, object: GestureDetector.SimpleOnGestureListener() {
+    private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDoubleTap(e: MotionEvent?): Boolean {
             action = max(action, ACTION_DOUBLE_TAP)
             return true
@@ -67,13 +67,14 @@ open class TouchImageView @JvmOverloads constructor(
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent?, distanceX: Float, distanceY: Float): Boolean {
             action = max(action, ACTION_MOVE)
-            actionMove.set( distanceX, distanceY )
+            actionMove.set(distanceX, distanceY)
             return true
         }
     })
 
-    open fun setBitmap( bitmap: Bitmap? ) {
+    open fun setBitmap(bitmap: Bitmap?) {
         this._bitmap = bitmap
+        requestLayout()
         resetPosition()
         invalidate()
     }
@@ -86,7 +87,7 @@ open class TouchImageView @JvmOverloads constructor(
         }
     }
 
-    private fun bestFitRect( outputWidth: Int, outputHeight: Int, inputWidth: Int, inputHeight: Int): RectF {
+    private fun bestFitRect(outputWidth: Int, outputHeight: Int, inputWidth: Int, inputHeight: Int): RectF {
         var width = outputWidth.toFloat()
         var height = width * inputHeight / inputWidth
 
@@ -98,10 +99,10 @@ open class TouchImageView @JvmOverloads constructor(
         val left = (outputWidth - width) / 2
         val top = (outputHeight - height) / 2
 
-        return RectF( left, top, left + width - 1, top + height - 1)
+        return RectF(left, top, left + width - 1, top + height - 1)
     }
 
-    private fun scaleRect( rect: RectF, scale: Float, center: PointF, minSize: PointF, maxSize: PointF ) {
+    private fun scaleRect(rect: RectF, scale: Float, center: PointF, minSize: PointF, maxSize: PointF) {
         val fixedScaleCenter = PointF(
                 min(max(center.x, rect.left), rect.right),
                 min(max(center.y, rect.top), rect.bottom)
@@ -139,6 +140,27 @@ open class TouchImageView @JvmOverloads constructor(
         rect.top -= scaleDeltaTopLeft.y
         rect.right += newSizeDelta.x - scaleDeltaTopLeft.x
         rect.bottom += newSizeDelta.y - scaleDeltaTopLeft.y
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
+        val heightSize = MeasureSpec.getSize(heightMeasureSpec)
+
+        var width
+        var height
+
+        val bitmap = _bitmap
+
+        if (null == bitmap) {
+            width = min(widthSize, heightSize)
+            height = width
+        } else {
+            val fitRect = bestFitRect(widthSize, heightSize, bitmap.width, bitmap.height)
+            width = fitRect.width().toInt()
+            height = fitRect.height().toInt()
+        }
+
+        setMeasuredDimension(width, height)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -181,7 +203,7 @@ open class TouchImageView @JvmOverloads constructor(
             }
 
             ACTION_SCALE -> {
-                scaleRect( viewRect, actionScale, actionScaleCenter, minSize, maxSize )
+                scaleRect(viewRect, actionScale, actionScaleCenter, minSize, maxSize)
             }
 
             else -> return true
@@ -224,12 +246,15 @@ open class TouchImageView @JvmOverloads constructor(
         val bitmap = this._bitmap
         if (null == bitmap) {
             @Suppress("DEPRECATION")
-            val noImage = resources.getDrawable( android.R.drawable.ic_menu_report_image )
+            val noImage = resources.getDrawable(android.R.drawable.ic_menu_report_image)
             noImage.bounds = bestFitRect(width, height, 100, 100).toRect()
             noImage.setTint(Color.GRAY)
             noImage.draw(canvas)
         } else {
-            canvas.drawBitmap( bitmap, null, _viewRect.toRect(), null )
+            val fullRect = Rect(_viewRect.toRect())
+            fullRect.right += 1
+            fullRect.bottom += 1
+            canvas.drawBitmap(bitmap, null, fullRect, null)
         }
     }
 }
