@@ -74,7 +74,6 @@ open class TouchImageView @JvmOverloads constructor(
 
     open fun setBitmap(bitmap: Bitmap?) {
         this._bitmap = bitmap
-        requestLayout()
         resetPosition()
         invalidate()
     }
@@ -140,27 +139,6 @@ open class TouchImageView @JvmOverloads constructor(
         rect.top -= scaleDeltaTopLeft.y
         rect.right += newSizeDelta.x - scaleDeltaTopLeft.x
         rect.bottom += newSizeDelta.y - scaleDeltaTopLeft.y
-    }
-
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
-        val heightSize = MeasureSpec.getSize(heightMeasureSpec)
-
-        var width: Int
-        var height: Int
-
-        val bitmap = _bitmap
-
-        if (null == bitmap) {
-            width = min(widthSize, heightSize)
-            height = width
-        } else {
-            val fitRect = bestFitRect(widthSize, heightSize, bitmap.width, bitmap.height)
-            width = fitRect.width().toInt()
-            height = fitRect.height().toInt()
-        }
-
-        setMeasuredDimension(width, height)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
