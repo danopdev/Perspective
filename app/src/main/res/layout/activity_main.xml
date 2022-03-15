@@ -61,6 +61,48 @@
                     android:textColor="@color/button_text" />
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/textView9"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Lock:"
+                    android:textAlignment="viewEnd" />
+
+                <RadioGroup
+                    android:id="@+id/radioGroupLock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkedButton="@id/radioButtonLockNone"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/radioButtonLockNone"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="None" />
+
+                    <RadioButton
+                        android:id="@+id/radioButtonLockHorizontal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Horizontal" />
+
+                    <RadioButton
+                        android:id="@+id/radioButtonLockVertical"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Vertical" />
+                </RadioGroup>
+            </LinearLayout>
+
             <FrameLayout
                 android:id="@+id/frameLayout"
                 android:layout_width="match_parent"

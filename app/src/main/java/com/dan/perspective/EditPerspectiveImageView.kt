@@ -89,6 +89,10 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         const val LINE_WIDTH = 5 //dp
         const val MIN_POINT_DISTANCE_TO_TRACK = 20 //dp
 
+        const val LOCK_NONE = 0
+        const val LOCK_HORIZONTAL = 1
+        const val LOCK_VERTICAL = 2
+
         fun dpToPixels( value: Int ): Float {
             return TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP,
@@ -107,6 +111,8 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     private var onPerspectiveChanged: (()->Unit)? = null
     private var onEditStart: (()->Unit)? = null
     private var onEditEnd: (()->Unit)? = null
+
+    var lock = LOCK_NONE
 
     var perspectivePoints: PerspectivePoints
         get() = _perspectivePoints
@@ -301,8 +307,8 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                 if (null != trackedPoint) {
                     transform.set(bitmap.width, bitmap.height, viewRect)
 
-                    val dx = event.x - trackedOldPosition.x
-                    val dy = event.y - trackedOldPosition.y
+                    val dx = if (LOCK_HORIZONTAL == lock) 0f else event.x - trackedOldPosition.x
+                    val dy = if (LOCK_VERTICAL == lock) 0f else event.y - trackedOldPosition.y
 
                     trackedViewPoint.offset( dx, dy )
                     if (trackedViewPoint.x < trackedAllowedRect.left) trackedViewPoint.x = trackedAllowedRect.left
