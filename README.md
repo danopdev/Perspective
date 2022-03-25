@@ -3,18 +3,19 @@
 Android application to fix perspective in photos.
 Internaly it uses OpenCL to load / save and warp photos.
 
+There is an auto-detection (but doesn't work correctly all the time).
+
+For edit mode you can lock a direction (horizontal or vertical) so you can move points only in one direction.
+
 * [Screenshots](#screenshots)
 * [To Do](#to-do)
 
 ## Screenshots ##
 
-Initial perspective | Warped perspective | Warped preview
+Initial perspective | Auto-detected perspective | Warped preview
 --- | --- | ---
-![Initial perspective](examples/screenshots/initial_perspective.jpg) | ![Warped perspective](examples/screenshots/warped_perspective.jpg) | ![Warped preview](examples/screenshots/warped_preview.jpg)
+![Initial perspective](examples/screenshots/initial_perspective.png) | ![Warped perspective](examples/screenshots/auto_perspective.png) | ![Warped preview](examples/screenshots/warped_preview.png)
 
 ## To Do ##
 
-* Add auto detect warping (can be tunned manually)
-* Switch between view / preview: try to use fragments for a nicer transition
 * Allow portrait mode: in this mode show side by side edit and preview
-* Auto generate preview (if there is no edit for 1 second for example)
