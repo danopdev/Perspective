@@ -358,9 +358,9 @@ class MainActivity : AppCompatActivity() {
         binding.buttonReset.isEnabled = enabled
         binding.buttonAuto.isEnabled = enabled
         binding.buttonPreview.isEnabled = enabled
-        binding.radioButtonLockNone.isEnabled = enabled
-        binding.radioButtonLockHorizontal.isEnabled = enabled
-        binding.radioButtonLockVertical.isEnabled = enabled
+        binding.radioButtonPointDirectionAll.isEnabled = enabled
+        binding.radioButtonPointDirectionHorizontal.isEnabled = enabled
+        binding.radioButtonPointDirectionVertical.isEnabled = enabled
 
         menuSave?.isEnabled = enabled
     }
@@ -705,11 +705,11 @@ class MainActivity : AppCompatActivity() {
             warpImage()
         }
 
-        binding.radioGroupLock.setOnCheckedChangeListener { _, id ->
+        binding.radioGroupPointDirection.setOnCheckedChangeListener { _, id ->
             when(id) {
-                binding.radioButtonLockHorizontal.id -> binding.imageEdit.lock = EditPerspectiveImageView.LOCK_HORIZONTAL
-                binding.radioButtonLockVertical.id -> binding.imageEdit.lock = EditPerspectiveImageView.LOCK_VERTICAL
-                else -> binding.imageEdit.lock = EditPerspectiveImageView.LOCK_NONE
+                binding.radioButtonPointDirectionHorizontal.id -> binding.imageEdit.pointEditDirection = EditPerspectiveImageView.POINT_EDIT_DIRECTION_HORIZONTAL
+                binding.radioButtonPointDirectionVertical.id -> binding.imageEdit.pointEditDirection = EditPerspectiveImageView.POINT_EDIT_DIRECTION_VERTICAL
+                else -> binding.imageEdit.pointEditDirection = EditPerspectiveImageView.POINT_EDIT_DIRECTION_ALL
             }
         }
 

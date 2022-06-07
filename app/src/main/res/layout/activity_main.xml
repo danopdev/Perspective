@@ -73,30 +73,30 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Lock:"
+                    android:text="Point direction:"
                     android:textAlignment="viewEnd" />
 
                 <RadioGroup
-                    android:id="@+id/radioGroupLock"
+                    android:id="@+id/radioGroupPointDirection"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:checkedButton="@id/radioButtonLockNone"
+                    android:checkedButton="@id/radioButtonPointDirectionAll"
                     android:orientation="horizontal">
 
                     <RadioButton
-                        android:id="@+id/radioButtonLockNone"
+                        android:id="@+id/radioButtonPointDirectionAll"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="None" />
+                        android:text="All" />
 
                     <RadioButton
-                        android:id="@+id/radioButtonLockHorizontal"
+                        android:id="@+id/radioButtonPointDirectionHorizontal"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Horizontal" />
 
                     <RadioButton
-                        android:id="@+id/radioButtonLockVertical"
+                        android:id="@+id/radioButtonPointDirectionVertical"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Vertical" />
