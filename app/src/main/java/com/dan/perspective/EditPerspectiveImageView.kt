@@ -38,10 +38,19 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
     private val perspectivePoints = PerspectivePoints()
     private val transform = Bitmap2View()
+
+    private val trackedOldPosition = PointF()
+
+    //Edit point
     private var trackedPoint: PointF? = null
     private var trackedViewPoint = PointF()
     private var trackedAllowedRect = RectF()
-    private val trackedOldPosition = PointF()
+
+    //Edit line: second point
+    private var trackedPoint2: PointF? = null
+    private var trackedViewPoint2 = PointF()
+    private var trackedAllowedRect2 = RectF()
+
     private val paint = Paint()
     private var onPerspectiveChanged: (()->Unit)? = null
     private var onEditStart: (()->Unit)? = null
@@ -161,6 +170,14 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     private fun distance( pointA: PointF, pointB: PointF ): Float =
             PointF.length( pointA.x - pointB.x, pointA.y - pointB.y )
 
+    private fun startEditPoint( trackedPoint: PointF, trackedViewPoint: PointF, allowedRect: RectF ) {
+        this.trackedPoint2 = null
+
+        this.trackedPoint = trackedPoint
+        this.trackedViewPoint.set( trackedViewPoint )
+        this.trackedAllowedRect.set( allowedRect )
+    }
+
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (null == event) return true
         val bitmap = super.getBitmap() ?: return true
@@ -178,54 +195,34 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
                     when {
                         distance(viewPerspective.pointLeftTop, screenPoint) < minDistance -> {
-                            Log.i("[PERSPECTIVE]", "LeftTop")
-                            trackedPoint = perspectivePoints.pointLeftTop
-                            trackedViewPoint.set(viewPerspective.pointLeftTop)
-
-                            trackedAllowedRect.set(
-                                    viewRect.left,
-                                    viewRect.top,
-                                    min(viewPerspective.pointRightTop.x, viewPerspective.pointRightBottom.x) - minDistance,
-                                    min(viewPerspective.pointLeftBottom.y, viewPerspective.pointRightBottom.y) - minDistance
+                            startEditPoint(
+                                    perspectivePoints.pointLeftTop,
+                                    viewPerspective.pointLeftTop,
+                                    viewPerspective.safeRectLeftTop()
                             )
                         }
 
                         distance(viewPerspective.pointLeftBottom, screenPoint) < minDistance -> {
-                            Log.i("[PERSPECTIVE]", "LeftBottom")
-                            trackedPoint = perspectivePoints.pointLeftBottom
-                            trackedViewPoint.set(viewPerspective.pointLeftBottom)
-
-                            trackedAllowedRect.set(
-                                    viewRect.left,
-                                    max(viewPerspective.pointLeftTop.y, viewPerspective.pointRightTop.y) + minDistance,
-                                    min(viewPerspective.pointRightTop.x, viewPerspective.pointRightBottom.x) - minDistance,
-                                    viewRect.bottom
+                            startEditPoint(
+                                    perspectivePoints.pointLeftBottom,
+                                    viewPerspective.pointLeftBottom,
+                                    viewPerspective.safeRectLeftBottom()
                             )
                         }
 
                         distance(viewPerspective.pointRightTop, screenPoint) < minDistance -> {
-                            Log.i("[PERSPECTIVE]", "RightTop")
-                            trackedPoint = perspectivePoints.pointRightTop
-                            trackedViewPoint.set(viewPerspective.pointRightTop)
-
-                            trackedAllowedRect.set(
-                                    max(viewPerspective.pointLeftTop.x, viewPerspective.pointLeftBottom.x) + minDistance,
-                                    viewRect.top,
-                                    viewRect.right,
-                                    min(viewPerspective.pointLeftBottom.y, viewPerspective.pointRightBottom.y) - minDistance
+                            startEditPoint(
+                                    perspectivePoints.pointRightTop,
+                                    viewPerspective.pointRightTop,
+                                    viewPerspective.safeRectRightTop()
                             )
                         }
 
                         distance(viewPerspective.pointRightBottom, screenPoint) < minDistance -> {
-                            Log.i("[PERSPECTIVE]", "RightBottom")
-                            trackedPoint = perspectivePoints.pointRightBottom
-                            trackedViewPoint.set(viewPerspective.pointRightBottom)
-
-                            trackedAllowedRect.set(
-                                    max(viewPerspective.pointLeftTop.x, viewPerspective.pointLeftBottom.x) + minDistance,
-                                    max(viewPerspective.pointLeftTop.y, viewPerspective.pointRightTop.y) + minDistance,
-                                    viewRect.right,
-                                    viewRect.bottom
+                            startEditPoint(
+                                    perspectivePoints.pointRightBottom,
+                                    viewPerspective.pointRightBottom,
+                                    viewPerspective.safeRectRightBottom()
                             )
                         }
                     }
