@@ -342,8 +342,6 @@ class MainActivity : AppCompatActivity() {
                         }
                     } catch (e: Exception) {
                     }
-
-                    autoDetectPerspective()
                 }
 
                 clearOutputImage()
