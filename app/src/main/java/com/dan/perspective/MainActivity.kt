@@ -462,21 +462,21 @@ class MainActivity : AppCompatActivity() {
         if (!outputImage.empty()) return
 
         runAsync( "Warping") {
-            val perspectivePoints = binding.imageEdit.perspectivePoints
+            val perspectivePoints = binding.imageEdit.getPerspective()
 
             val srcMat = Mat(4, 1, CV_32FC2)
             srcMat.put(
                     0, 0,
-                    perspectivePoints.leftTop.x.toDouble(), perspectivePoints.leftTop.y.toDouble(),
-                    perspectivePoints.rightTop.x.toDouble(), perspectivePoints.rightTop.y.toDouble(),
-                    perspectivePoints.rightBottom.x.toDouble(), perspectivePoints.rightBottom.y.toDouble(),
-                    perspectivePoints.leftBottom.x.toDouble(), perspectivePoints.leftBottom.y.toDouble(),
+                    perspectivePoints.pointLeftTop.x.toDouble(), perspectivePoints.pointLeftTop.y.toDouble(),
+                    perspectivePoints.pointRightTop.x.toDouble(), perspectivePoints.pointRightTop.y.toDouble(),
+                    perspectivePoints.pointRightBottom.x.toDouble(), perspectivePoints.pointRightBottom.y.toDouble(),
+                    perspectivePoints.pointLeftBottom.x.toDouble(), perspectivePoints.pointLeftBottom.y.toDouble(),
             )
 
-            val destLeft = (perspectivePoints.leftTop.x + perspectivePoints.leftBottom.x) / 2.0
-            val destRight = (perspectivePoints.rightTop.x + perspectivePoints.rightBottom.x) / 2.0
-            val destTop = (perspectivePoints.leftTop.y + perspectivePoints.rightTop.y) / 2.0
-            val destBottom = (perspectivePoints.leftBottom.y + perspectivePoints.rightBottom.y) / 2.0
+            val destLeft = (perspectivePoints.pointLeftTop.x + perspectivePoints.pointLeftBottom.x) / 2.0
+            val destRight = (perspectivePoints.pointRightTop.x + perspectivePoints.pointRightBottom.x) / 2.0
+            val destTop = (perspectivePoints.pointLeftTop.y + perspectivePoints.pointRightTop.y) / 2.0
+            val destBottom = (perspectivePoints.pointLeftBottom.y + perspectivePoints.pointRightBottom.y) / 2.0
 
             val destMat = Mat(4, 1, CV_32FC2)
             destMat.put(
@@ -655,7 +655,7 @@ class MainActivity : AppCompatActivity() {
 
         runOnUiThread {
             clearOutputImage()
-            binding.imageEdit.perspectivePoints = PerspectivePoints(leftTop, leftBottom, rightTop, rightBottom)
+            binding.imageEdit.setPerspective(leftTop, rightTop, leftBottom, rightBottom)
         }
     }
 

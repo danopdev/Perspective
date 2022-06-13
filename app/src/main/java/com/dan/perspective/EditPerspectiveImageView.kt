@@ -11,73 +11,6 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-data class PerspectivePoints(
-        val leftTop: PointF = PointF(),
-        val leftBottom: PointF = PointF(),
-        val rightTop: PointF = PointF(),
-        val rightBottom: PointF = PointF()
-) {
-    fun set( points: PerspectivePoints ) {
-        leftTop.set(points.leftTop)
-        leftBottom.set(points.leftBottom)
-        rightTop.set(points.rightTop)
-        rightBottom.set(points.rightBottom)
-    }
-}
-
-
-private class ViewTransform(bitmapWidth: Int = 1, bitmapHeight: Int = 1, viewRect: RectF = RectF()) {
-    private val scale = PointF(1f, 1f)
-    private val delta = PointF( 0f, 0f)
-
-    init {
-        set( bitmapWidth, bitmapHeight, viewRect )
-    }
-
-    fun set( bitmapWidth: Int, bitmapHeight: Int, viewRect: RectF ) {
-        if (bitmapWidth <= 0 || bitmapHeight <= 0) {
-            delta.set( 0f, 0f )
-            scale.set( 1f, 1f )
-        } else {
-            delta.set( viewRect.left, viewRect.top )
-            scale.set( viewRect.width() / bitmapWidth, viewRect.height() / bitmapHeight )
-        }
-    }
-
-    fun mapToView( point: PointF ): PointF {
-        return PointF(
-                delta.x + point.x * scale.x,
-                delta.y + point.y * scale.y
-        )
-    }
-
-    fun mapToView( points: PerspectivePoints ): PerspectivePoints {
-        return PerspectivePoints(
-                mapToView( points.leftTop ),
-                mapToView( points.leftBottom ),
-                mapToView( points.rightTop ),
-                mapToView( points.rightBottom )
-        )
-    }
-
-    fun mapToBitmap( point: PointF ): PointF {
-        return PointF(
-                (point.x - delta.x) / scale.x,
-                (point.y - delta.y) / scale.y,
-        )
-    }
-
-    fun mapToBitmap( points: PerspectivePoints ): PerspectivePoints {
-        return PerspectivePoints(
-                mapToBitmap( points.leftTop ),
-                mapToBitmap( points.leftBottom ),
-                mapToBitmap( points.rightTop ),
-                mapToBitmap( points.rightBottom )
-        )
-    }
-}
-
-
 class EditPerspectiveImageView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : TouchImageView(context, attrs, defStyleAttr) {
@@ -101,8 +34,10 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         }
     }
 
-    private val transform = ViewTransform()
-    private val _perspectivePoints = PerspectivePoints()
+    var pointEditDirection = POINT_EDIT_DIRECTION_ALL
+
+    private val perspectivePoints = PerspectivePoints()
+    private val transform = Bitmap2View()
     private var trackedPoint: PointF? = null
     private var trackedViewPoint = PointF()
     private var trackedAllowedRect = RectF()
@@ -112,14 +47,13 @@ class EditPerspectiveImageView @JvmOverloads constructor(
     private var onEditStart: (()->Unit)? = null
     private var onEditEnd: (()->Unit)? = null
 
-    var pointEditDirection = POINT_EDIT_DIRECTION_ALL
+    fun getPerspective(): PerspectivePoints = perspectivePoints.clone()
 
-    var perspectivePoints: PerspectivePoints
-        get() = _perspectivePoints
-        set(points) {
-            _perspectivePoints.set(points)
-            invalidate()
-        }
+    fun setPerspective(leftTop: PointF, rightTop: PointF, leftBottom: PointF, rightBottom: PointF) {
+        perspectivePoints.set( leftTop, rightTop, leftBottom, rightBottom, this.perspectivePoints.viewRect )
+        invalidate()
+        onPerspectiveChanged?.invoke()
+    }
 
     fun setOnPerspectiveChanged( listener: (()->Unit)? ) {
         onPerspectiveChanged = listener
@@ -146,16 +80,21 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         val top = bitmap.height * BORDER.toFloat() / 100
         val bottom = bitmap.height - top
 
-        _perspectivePoints.leftTop.set(left, top)
-        _perspectivePoints.leftBottom.set(left, bottom)
-        _perspectivePoints.rightTop.set(right, top)
-        _perspectivePoints.rightBottom.set(right, bottom)
+        perspectivePoints.set(
+                PointF(left, top),
+                PointF(right, top),
+                PointF(left, bottom),
+                PointF(right, bottom),
+                RectF( 0f, 0f, bitmap.width.toFloat(), bitmap.height.toFloat() )
+        )
 
         invalidate()
         onPerspectiveChanged?.invoke()
     }
 
-    private fun drawPoint( point: PointF, radius: Float, canvas: Canvas, paint: Paint ) {
+    private fun drawPoint( point: PointF, canvas: Canvas, paint: Paint, isActive: Boolean ) {
+        val radius = if (isActive) dpToPixels(TRACKED_POINT_RADIUS) else dpToPixels(POINT_RADIUS)
+        paint.style = if (isActive) Paint.Style.STROKE else Paint.Style.FILL_AND_STROKE
         canvas.drawCircle( point.x, point.y, radius, paint )
     }
 
@@ -199,34 +138,24 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         val viewRect = super.viewRect
 
         transform.set( bitmap.width, bitmap.height, viewRect )
-        val viewPoints = transform.mapToView( _perspectivePoints )
+        val viewPerspective = transform.mapToView( perspectivePoints )
 
         paint.strokeCap = Paint.Cap.ROUND
         paint.style = Paint.Style.FILL_AND_STROKE
         paint.strokeWidth = dpToPixels(LINE_WIDTH)
         paint.color = Color.argb( 128, 255, 0, 0 )
-        drawLine( viewPoints.leftTop, viewPoints.leftBottom, canvas, paint, viewRect )
-        drawLine( viewPoints.leftTop, viewPoints.rightTop, canvas, paint, viewRect )
-        drawLine( viewPoints.rightTop, viewPoints.rightBottom, canvas, paint, viewRect )
-        drawLine( viewPoints.leftBottom, viewPoints.rightBottom, canvas, paint, viewRect )
+        drawLine( viewPerspective.pointLeftTop, viewPerspective.pointLeftBottom, canvas, paint, viewRect )
+        drawLine( viewPerspective.pointLeftTop, viewPerspective.pointRightTop, canvas, paint, viewRect )
+        drawLine( viewPerspective.pointRightTop, viewPerspective.pointRightBottom, canvas, paint, viewRect )
+        drawLine( viewPerspective.pointLeftBottom, viewPerspective.pointRightBottom, canvas, paint, viewRect )
 
-        val radius = dpToPixels(POINT_RADIUS)
-        paint.style = Paint.Style.FILL
+        paint.style = Paint.Style.FILL_AND_STROKE
         paint.color = Color.argb( 128, 0, 0, 255 )
 
-        val trackedPoint = this.trackedPoint
-
-        if (_perspectivePoints.leftTop != trackedPoint) drawPoint( viewPoints.leftTop, radius, canvas, paint )
-        if (_perspectivePoints.leftBottom != trackedPoint) drawPoint( viewPoints.leftBottom, radius, canvas, paint )
-        if (_perspectivePoints.rightTop != trackedPoint) drawPoint( viewPoints.rightTop, radius, canvas, paint )
-        if (_perspectivePoints.rightBottom != trackedPoint) drawPoint( viewPoints.rightBottom, radius, canvas, paint )
-
-        if (null != trackedPoint) {
-            val trackedViewPoint = transform.mapToView(trackedPoint)
-            val radiusTracked = dpToPixels(TRACKED_POINT_RADIUS)
-            paint.style = Paint.Style.STROKE
-            drawPoint( trackedViewPoint, radiusTracked, canvas, paint )
-        }
+        drawPoint( viewPerspective.pointLeftTop, canvas, paint, perspectivePoints.pointLeftTop == trackedPoint )
+        drawPoint( viewPerspective.pointLeftBottom, canvas, paint, perspectivePoints.pointLeftBottom == trackedPoint )
+        drawPoint( viewPerspective.pointRightTop, canvas, paint, perspectivePoints.pointRightTop == trackedPoint )
+        drawPoint( viewPerspective.pointRightBottom, canvas, paint, perspectivePoints.pointRightBottom == trackedPoint )
     }
 
     private fun distance( pointA: PointF, pointB: PointF ): Float =
@@ -242,55 +171,59 @@ class EditPerspectiveImageView @JvmOverloads constructor(
                     transform.set(bitmap.width, bitmap.height, viewRect)
 
                     val screenPoint = PointF(event.x, event.y)
-                    val viewPoints = transform.mapToView(_perspectivePoints)
+                    val viewPerspective = transform.mapToView(perspectivePoints)
                     val minDistance = dpToPixels(MIN_POINT_DISTANCE_TO_TRACK)
 
                     trackedOldPosition.set(event.x, event.y)
 
                     when {
-                        distance(viewPoints.leftTop, screenPoint) < minDistance -> {
-                            trackedPoint = _perspectivePoints.leftTop
-                            trackedViewPoint.set(viewPoints.leftTop)
+                        distance(viewPerspective.pointLeftTop, screenPoint) < minDistance -> {
+                            Log.i("[PERSPECTIVE]", "LeftTop")
+                            trackedPoint = perspectivePoints.pointLeftTop
+                            trackedViewPoint.set(viewPerspective.pointLeftTop)
 
                             trackedAllowedRect.set(
                                     viewRect.left,
                                     viewRect.top,
-                                    min(viewPoints.rightTop.x, viewPoints.rightBottom.x) - minDistance,
-                                    min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
+                                    min(viewPerspective.pointRightTop.x, viewPerspective.pointRightBottom.x) - minDistance,
+                                    min(viewPerspective.pointLeftBottom.y, viewPerspective.pointRightBottom.y) - minDistance
                             )
                         }
 
-                        distance(viewPoints.leftBottom, screenPoint) < minDistance -> {
-                            trackedPoint = _perspectivePoints.leftBottom
-                            trackedViewPoint.set(viewPoints.leftBottom)
+                        distance(viewPerspective.pointLeftBottom, screenPoint) < minDistance -> {
+                            Log.i("[PERSPECTIVE]", "LeftBottom")
+                            trackedPoint = perspectivePoints.pointLeftBottom
+                            trackedViewPoint.set(viewPerspective.pointLeftBottom)
 
                             trackedAllowedRect.set(
                                     viewRect.left,
-                                    max(viewPoints.leftTop.y, viewPoints.rightTop.y) + minDistance,
-                                    min(viewPoints.rightTop.x, viewPoints.rightBottom.x) - minDistance,
+                                    max(viewPerspective.pointLeftTop.y, viewPerspective.pointRightTop.y) + minDistance,
+                                    min(viewPerspective.pointRightTop.x, viewPerspective.pointRightBottom.x) - minDistance,
                                     viewRect.bottom
                             )
                         }
 
-                        distance(viewPoints.rightTop, screenPoint) < minDistance -> {
-                            trackedPoint = _perspectivePoints.rightTop
-                            trackedViewPoint.set(viewPoints.rightTop)
+                        distance(viewPerspective.pointRightTop, screenPoint) < minDistance -> {
+                            Log.i("[PERSPECTIVE]", "RightTop")
+                            trackedPoint = perspectivePoints.pointRightTop
+                            trackedViewPoint.set(viewPerspective.pointRightTop)
 
                             trackedAllowedRect.set(
-                                    max(viewPoints.leftTop.x, viewPoints.leftBottom.x) + minDistance,
+                                    max(viewPerspective.pointLeftTop.x, viewPerspective.pointLeftBottom.x) + minDistance,
                                     viewRect.top,
                                     viewRect.right,
-                                    min(viewPoints.leftBottom.y, viewPoints.rightBottom.y) - minDistance
+                                    min(viewPerspective.pointLeftBottom.y, viewPerspective.pointRightBottom.y) - minDistance
                             )
                         }
 
-                        distance(viewPoints.rightBottom, screenPoint) < minDistance -> {
-                            trackedPoint = _perspectivePoints.rightBottom
-                            trackedViewPoint.set(viewPoints.rightBottom)
+                        distance(viewPerspective.pointRightBottom, screenPoint) < minDistance -> {
+                            Log.i("[PERSPECTIVE]", "RightBottom")
+                            trackedPoint = perspectivePoints.pointRightBottom
+                            trackedViewPoint.set(viewPerspective.pointRightBottom)
 
                             trackedAllowedRect.set(
-                                    max(viewPoints.leftTop.x, viewPoints.leftBottom.x) + minDistance,
-                                    max(viewPoints.leftTop.y, viewPoints.rightTop.y) + minDistance,
+                                    max(viewPerspective.pointLeftTop.x, viewPerspective.pointLeftBottom.x) + minDistance,
+                                    max(viewPerspective.pointLeftTop.y, viewPerspective.pointRightTop.y) + minDistance,
                                     viewRect.right,
                                     viewRect.bottom
                             )

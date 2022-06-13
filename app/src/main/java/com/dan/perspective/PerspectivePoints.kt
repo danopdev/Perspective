@@ -1,54 +1,84 @@
 package com.dan.perspective
 
 import android.graphics.PointF
-import kotlin.math.abs
-import kotlin.math.sqrt
+import android.graphics.RectF
+import java.lang.Float.max
+import java.lang.Float.min
 
 
-data class LineF(val from: PointF, val to: PointF ) {
-    val segmentDeltaX: Float get() = to.x - from.y;
-    val segmentDeltaY: Float get() = to.y - from.y;
-    val segmentLength: Float get() {
-        val dx = segmentDeltaX
-        val dy = segmentDeltaY
-        return sqrt(dx * dx + dy * dy)
-    }
-}
-
-
-class Perspective {
+class PerspectivePoints(
+        val pointLeftTop: PointF = PointF(),
+        val pointRightTop: PointF = PointF(),
+        val pointLeftBottom: PointF = PointF(),
+        val pointRightBottom: PointF = PointF(),
+        val viewRect: RectF = RectF()
+) {
     companion object {
-        const val EPSILON: Float = 0.01f
-
-        fun distance( point: PointF, line: LineF ): Float {
-            return abs(
-                    line.segmentDeltaX * ( line.from.y - point.y ) - (line.from.x - point.x) * line.segmentDeltaY
-                    ) / line.segmentLength
-        }
-
-        fun distance( from: PointF, to: PointF ): Float {
-            return LineF(from, to).segmentLength
-        }
-
-        fun intersection( line1: LineF, line2: LineF ): PointF? {
-            val denominator = line1.segmentDeltaX * line2.segmentDeltaY - line1.segmentDeltaY * line2.segmentDeltaX
-            if (abs(denominator) < EPSILON) return null
-
-            val a = line1.from.x * line1.to.y - line1.from.y * line1.to.x
-            val b = line2.from.x * line2.to.y - line2.from.y * line2.to.x
-            val x = a * line2.segmentDeltaX - line1.segmentDeltaX * b
-            val y = a * line2.segmentDeltaY - line1.segmentDeltaY * b
-
-            return PointF( x / denominator, y / denominator )
-        }
+        private const val MIN_SPACE: Float = 5f
     }
 
-    val pointTopLeft = PointF()
-    val pointTopRight = PointF()
-    val pointBottomLeft = PointF()
-    val pointBottomRight = PointF()
-    val lineTop = LineF( pointTopLeft, pointTopRight )
-    val lineBottom = LineF( pointBottomLeft, pointBottomRight )
-    val lineLeft = LineF( pointTopLeft, pointBottomLeft )
-    val lineRight = LineF( pointTopRight, pointBottomRight )
+    val lineTop = LineF( pointLeftTop, pointRightTop )
+    val lineBottom = LineF( pointLeftBottom, pointRightBottom )
+    val lineLeft = LineF( pointLeftTop, pointLeftBottom )
+    val lineRight = LineF( pointRightTop, pointRightBottom )
+
+    fun clone(): PerspectivePoints {
+        return PerspectivePoints(
+                PointF( pointLeftTop.x, pointLeftTop.y ),
+                PointF( pointRightTop.x, pointRightTop.y ),
+                PointF( pointLeftBottom.x, pointLeftBottom.y ),
+                PointF( pointRightBottom.x, pointRightBottom.y ),
+                RectF( viewRect )
+        )
+    }
+
+    fun set( perspectivePoints: PerspectivePoints ) {
+        set(
+                perspectivePoints.pointLeftTop,
+                perspectivePoints.pointRightTop,
+                perspectivePoints.pointLeftBottom,
+                perspectivePoints.pointRightBottom,
+                perspectivePoints.viewRect
+        )
+    }
+
+    fun set( leftTop: PointF, rightTop: PointF, leftBottom: PointF, rightBottom: PointF, viewRect: RectF ) {
+        this.viewRect.set( viewRect )
+        pointLeftTop.set( leftTop )
+        pointRightTop.set( rightTop )
+        pointLeftBottom.set( leftBottom )
+        pointRightBottom.set( rightBottom )
+    }
+
+    fun safeRectLeftTop(): RectF =
+        RectF(
+            viewRect.left,
+            viewRect.top,
+            min(pointRightTop.x, pointRightBottom.x) - MIN_SPACE,
+            min(pointLeftBottom.y, pointRightBottom.y) - MIN_SPACE
+        )
+
+    fun safeRectRightTop(): RectF =
+        RectF(
+            max(pointLeftTop.x, pointLeftBottom.x) + MIN_SPACE,
+            viewRect.top,
+            viewRect.right,
+            min(pointLeftBottom.y, pointRightBottom.y) - MIN_SPACE
+        )
+
+    fun safeRectLeftBottom(): RectF =
+        RectF(
+            viewRect.left,
+            max(pointLeftTop.y, pointRightTop.y) + MIN_SPACE,
+            min(pointRightTop.x, pointRightBottom.x) - MIN_SPACE,
+            viewRect.bottom
+        )
+
+    fun safeRectRightBottom(): RectF =
+        RectF(
+            max(pointLeftTop.x, pointLeftBottom.x) + MIN_SPACE,
+            max(pointLeftTop.y, pointRightTop.y) + MIN_SPACE,
+            viewRect.right,
+            viewRect.bottom
+        )
 }
