@@ -18,7 +18,5 @@ Initial perspective | Auto-detected perspective | Warped preview
 
 ## To Do ##
 
-* Allow to select and move lines too, not just points
 * Add "UNDO / REDO" buttons
 * Allow portrait mode: in this mode show side by side edit and preview
-* Allow to save / reload the current projection
