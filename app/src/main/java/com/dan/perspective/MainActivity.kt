@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var inputImage: Mat
     private lateinit var outputImage: Mat
     private var menuSave: MenuItem? = null
+    private var menuPrevPerspective: MenuItem? = null
     private var editMode = true
 
     private val firstAnimatorListener = object : Animator.AnimatorListener {
@@ -184,8 +185,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+
         menuSave = menu?.findItem(R.id.save)
         menuSave?.isEnabled = !inputImage.empty()
+
+        menuPrevPerspective = menu?.findItem(R.id.prevPerspective)
+        menuPrevPerspective?.isEnabled = !inputImage.empty() && settings.prevHeight > 0
+
         return true
     }
 
@@ -205,6 +211,32 @@ class MainActivity : AppCompatActivity() {
             R.id.settings -> {
                 SettingsDialog.show(this)
                 return true
+            }
+
+            R.id.prevPerspective -> {
+                if (settings.prevHeight < 1) return true
+                if (inputImage.empty()) return true
+
+                binding.imageEdit.setPerspective(
+                    PointF(
+                        settings.prevLeftTopX * inputImage.width() / settings.prevWidth,
+                        settings.prevLeftTopY * inputImage.height() / settings.prevHeight
+                    ),
+                    PointF(
+                        settings.prevRightTopX * inputImage.width() / settings.prevWidth,
+                        settings.prevRightTopY * inputImage.height() / settings.prevHeight
+                    ),
+                    PointF(
+                        settings.prevLeftBottomX * inputImage.width() / settings.prevWidth,
+                        settings.prevLeftBottomY * inputImage.height() / settings.prevHeight
+                    ),
+                    PointF(
+                        settings.prevRightBottomX * inputImage.width() / settings.prevWidth,
+                        settings.prevRightBottomY * inputImage.height() / settings.prevHeight
+                    )
+                )
+
+                return true;
             }
         }
 
@@ -361,6 +393,7 @@ class MainActivity : AppCompatActivity() {
         binding.radioButtonPointDirectionVertical.isEnabled = enabled
 
         menuSave?.isEnabled = enabled
+        menuPrevPerspective?.isEnabled = enabled && settings.prevHeight > 0
     }
 
     private fun loadImage(uri: Uri) : Mat {
@@ -435,6 +468,21 @@ class MainActivity : AppCompatActivity() {
                     values.put(MediaStore.Images.Media.DATA, fileFullPath)
                     values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
                     contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+                    val perspectivePoints = binding.imageEdit.getPerspective()
+                    settings.prevWidth = outputImage.width()
+                    settings.prevHeight = outputImage.height()
+                    settings.prevLeftTopX = perspectivePoints.pointLeftTop.x
+                    settings.prevLeftTopY = perspectivePoints.pointLeftTop.y
+                    settings.prevRightTopX = perspectivePoints.pointRightTop.x
+                    settings.prevRightTopY = perspectivePoints.pointRightTop.y
+                    settings.prevLeftBottomX = perspectivePoints.pointLeftBottom.x
+                    settings.prevLeftBottomY = perspectivePoints.pointLeftBottom.y
+                    settings.prevRightBottomX = perspectivePoints.pointRightBottom.x
+                    settings.prevRightBottomY = perspectivePoints.pointRightBottom.y
+                    settings.saveProperties()
+
+                    menuPrevPerspective?.isEnabled = true
                 }
 
                 showToast("Saved to: $fileName")

@@ -36,6 +36,16 @@ class Settings( private val activity: Activity) {
     var tiffDepth = DEPTH_AUTO
     var engineDepth = DEPTH_AUTO
     var hapticFeedback = true
+    var prevLeftTopX = -1f
+    var prevLeftTopY = -1f
+    var prevRightTopX = -1f
+    var prevRightTopY = -1f
+    var prevRightBottomX = -1f
+    var prevRightBottomY = -1f
+    var prevLeftBottomX = -1f
+    var prevLeftBottomY = -1f
+    var prevWidth = 0
+    var prevHeight = 0
 
     init {
         loadProperties()

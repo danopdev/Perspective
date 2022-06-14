@@ -14,8 +14,13 @@
         android:visibility="gone"
         app:showAsAction="always" />
     <item
+        android:id="@+id/prevPerspective"
+        android:enabled="false"
+        android:title="Previous Perspective"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/settings"
         android:icon="@android:drawable/ic_menu_preferences"
         android:title="Settings"
-        app:showAsAction="always" />
+        app:showAsAction="never" />
 </menu>
