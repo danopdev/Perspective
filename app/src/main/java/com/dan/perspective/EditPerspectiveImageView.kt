@@ -380,12 +380,6 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
         trackedOldPosition.set(event.x, event.y)
 
-        Log.i("[PERSPECTIVE]", "dx: $dx, dy: $dy")
-
-        if (dx > 2) {
-            trackedOldPosition.set(event.x, event.y)
-        }
-
         val newTrackedViewPoint = calculateNewViewPoint(
                 dx,
                 dy,
