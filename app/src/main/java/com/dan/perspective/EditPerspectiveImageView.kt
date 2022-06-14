@@ -42,11 +42,18 @@ class EditPerspectiveImageView @JvmOverloads constructor(
 
     private val trackedOldPosition = PointF()
 
+    //Point edit or first point of line edit
     private var trackedPoint: PointF? = null
     private var trackedViewPoint = PointF()
     private var trackedAllowedRect = RectF()
     private var trackedMovedAlongLine: LineF? = null
     private var trackedMovedAlongLineHorizontal = true
+
+    //Second point of line edit
+    private var trackedPoint2: PointF? = null
+    private var trackedViewPoint2 = PointF()
+    private var trackedAllowedRect2 = RectF()
+    private var trackedMovedAlongLine2: LineF? = null
 
     private val paint = Paint()
     private var onPerspectiveChanged: (()->Unit)? = null
@@ -158,10 +165,26 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         paint.style = Paint.Style.FILL_AND_STROKE
         paint.color = Color.argb( 128, 0, 0, 255 )
 
-        drawPoint( viewPerspective.pointLeftTop, canvas, paint, perspectivePoints.pointLeftTop == trackedPoint )
-        drawPoint( viewPerspective.pointLeftBottom, canvas, paint, perspectivePoints.pointLeftBottom == trackedPoint )
-        drawPoint( viewPerspective.pointRightTop, canvas, paint, perspectivePoints.pointRightTop == trackedPoint )
-        drawPoint( viewPerspective.pointRightBottom, canvas, paint, perspectivePoints.pointRightBottom == trackedPoint )
+        drawPoint(
+                viewPerspective.pointLeftTop,
+                canvas,
+                paint,
+                perspectivePoints.pointLeftTop == trackedPoint || perspectivePoints.pointLeftTop == trackedPoint2)
+        drawPoint(
+                viewPerspective.pointLeftBottom,
+                canvas,
+                paint,
+                perspectivePoints.pointLeftBottom == trackedPoint || perspectivePoints.pointLeftBottom == trackedPoint2)
+        drawPoint(
+                viewPerspective.pointRightTop,
+                canvas,
+                paint,
+                perspectivePoints.pointRightTop == trackedPoint || perspectivePoints.pointRightTop == trackedPoint2)
+        drawPoint(
+                viewPerspective.pointRightBottom,
+                canvas,
+                paint,
+                perspectivePoints.pointRightBottom == trackedPoint || perspectivePoints.pointRightBottom == trackedPoint2)
     }
 
     private fun distance( pointA: PointF, pointB: PointF ): Float =
@@ -172,13 +195,26 @@ class EditPerspectiveImageView @JvmOverloads constructor(
             trackedViewPoint: PointF,
             allowedRect: RectF,
             moveAlongLine: LineF? = null,
-            lineIsHorizontal: Boolean = true
+            lineIsHorizontal: Boolean = true,
+            trackedPoint2: PointF? = null,
+            trackedViewPoint2: PointF? = null,
+            allowedRect2: RectF? = null,
+            moveAlongLine2: LineF? = null
     ) {
         this.trackedPoint = trackedPoint
         this.trackedViewPoint.set( trackedViewPoint )
         this.trackedAllowedRect.set( allowedRect )
         this.trackedMovedAlongLine = moveAlongLine
         this.trackedMovedAlongLineHorizontal = lineIsHorizontal
+
+        if (null != trackedPoint2 && null != trackedViewPoint2 && null != allowedRect2) {
+            this.trackedPoint2 = trackedPoint2
+            this.trackedViewPoint2.set( trackedViewPoint2 )
+            this.trackedAllowedRect2.set( allowedRect2 )
+            this.trackedMovedAlongLine2 = moveAlongLine2
+        } else {
+            this.trackedPoint2 = null
+        }
     }
 
     private fun calculateNewViewPoint(
@@ -215,102 +251,193 @@ class EditPerspectiveImageView @JvmOverloads constructor(
         )
     }
 
+    private fun handleActionDown( event: MotionEvent, bitmap: Bitmap ): Boolean {
+        if (null != trackedPoint) return true
+
+        transform.set(bitmap.width, bitmap.height, viewRect)
+
+        val screenPoint = PointF(event.x, event.y)
+        val viewPerspective = transform.mapToView(perspectivePoints)
+        val minDistance = dpToPixels(MIN_POINT_DISTANCE_TO_TRACK)
+        val allowEditLineHorizontal = POINT_EDIT_DIRECTION_ALL == pointEditDirection || POINT_EDIT_DIRECTION_HORIZONTAL == pointEditDirection
+        val allowEditLineVertical = POINT_EDIT_DIRECTION_ALL == pointEditDirection || POINT_EDIT_DIRECTION_VERTICAL == pointEditDirection
+
+        trackedOldPosition.set(event.x, event.y)
+
+        when {
+            distance(viewPerspective.pointLeftTop, screenPoint) < minDistance -> {
+                startEdit(
+                        perspectivePoints.pointLeftTop,
+                        viewPerspective.pointLeftTop,
+                        viewPerspective.safeRectLeftTop(),
+                        getMoveAlongLine( viewPerspective.pointLeftTop, viewPerspective.pointRightTop, viewPerspective.pointLeftBottom ),
+                        pointEditDirection == POINT_EDIT_DIRECTION_HORIZONTAL
+                )
+            }
+
+            distance(viewPerspective.pointLeftBottom, screenPoint) < minDistance -> {
+                startEdit(
+                        perspectivePoints.pointLeftBottom,
+                        viewPerspective.pointLeftBottom,
+                        viewPerspective.safeRectLeftBottom(),
+                        getMoveAlongLine( viewPerspective.pointLeftBottom, viewPerspective.pointRightBottom, viewPerspective.pointLeftTop ),
+                        pointEditDirection == POINT_EDIT_DIRECTION_HORIZONTAL
+                )
+            }
+
+            distance(viewPerspective.pointRightTop, screenPoint) < minDistance -> {
+                startEdit(
+                        perspectivePoints.pointRightTop,
+                        viewPerspective.pointRightTop,
+                        viewPerspective.safeRectRightTop(),
+                        getMoveAlongLine( viewPerspective.pointRightTop, viewPerspective.pointLeftTop, viewPerspective.pointRightBottom ),
+                        pointEditDirection == POINT_EDIT_DIRECTION_HORIZONTAL
+                )
+            }
+
+            distance(viewPerspective.pointRightBottom, screenPoint) < minDistance -> {
+                startEdit(
+                        perspectivePoints.pointRightBottom,
+                        viewPerspective.pointRightBottom,
+                        viewPerspective.safeRectRightBottom(),
+                        getMoveAlongLine( viewPerspective.pointRightBottom, viewPerspective.pointLeftBottom, viewPerspective.pointRightTop ),
+                        pointEditDirection == POINT_EDIT_DIRECTION_HORIZONTAL
+                )
+            }
+
+            allowEditLineVertical && viewPerspective.lineTop.distanceFrom(screenPoint) < minDistance -> {
+                startEdit(
+                        perspectivePoints.lineTop.from,
+                        viewPerspective.lineTop.from,
+                        viewPerspective.safeRectLeftTop(),
+                        viewPerspective.lineLeft.clone(),
+                        false,
+                        perspectivePoints.lineTop.to,
+                        viewPerspective.lineTop.to,
+                        viewPerspective.safeRectRightTop(),
+                        viewPerspective.lineRight.clone()
+                )
+            }
+
+            allowEditLineVertical && viewPerspective.lineBottom.distanceFrom(screenPoint) < minDistance -> {
+                startEdit(
+                        perspectivePoints.lineBottom.from,
+                        viewPerspective.lineBottom.from,
+                        viewPerspective.safeRectLeftBottom(),
+                        viewPerspective.lineLeft.clone(),
+                        false,
+                        perspectivePoints.lineBottom.to,
+                        viewPerspective.lineBottom.to,
+                        viewPerspective.safeRectRightBottom(),
+                        viewPerspective.lineRight.clone()
+                )
+            }
+
+            allowEditLineHorizontal && viewPerspective.lineLeft.distanceFrom(screenPoint) < minDistance -> {
+                startEdit(
+                        perspectivePoints.lineLeft.from,
+                        viewPerspective.lineLeft.from,
+                        viewPerspective.safeRectLeftTop(),
+                        viewPerspective.lineTop.clone(),
+                        true,
+                        perspectivePoints.lineLeft.to,
+                        viewPerspective.lineLeft.to,
+                        viewPerspective.safeRectLeftBottom(),
+                        viewPerspective.lineBottom.clone()
+                )
+            }
+
+            allowEditLineHorizontal && viewPerspective.lineRight.distanceFrom(screenPoint) < minDistance -> {
+                startEdit(
+                        perspectivePoints.lineRight.from,
+                        viewPerspective.lineRight.from,
+                        viewPerspective.safeRectRightTop(),
+                        viewPerspective.lineTop.clone(),
+                        true,
+                        perspectivePoints.lineRight.to,
+                        viewPerspective.lineRight.to,
+                        viewPerspective.safeRectRightBottom(),
+                        viewPerspective.lineBottom.clone()
+                )
+            }
+        }
+
+        if (null != trackedPoint) {
+            onEditStart?.invoke()
+            return true
+        }
+
+        return false
+    }
+
+    private fun handleActionMove(event: MotionEvent, bitmap: Bitmap): Boolean {
+        val trackedPoint = this.trackedPoint ?: return false
+
+        transform.set(bitmap.width, bitmap.height, viewRect)
+
+        val dx = event.x - trackedOldPosition.x
+        val dy = event.y - trackedOldPosition.y
+
+        trackedOldPosition.set(event.x, event.y)
+
+        Log.i("[PERSPECTIVE]", "dx: $dx, dy: $dy")
+
+        if (dx > 2) {
+            trackedOldPosition.set(event.x, event.y)
+        }
+
+        val newTrackedViewPoint = calculateNewViewPoint(
+                dx,
+                dy,
+                trackedViewPoint,
+                trackedAllowedRect,
+                trackedMovedAlongLine,
+                trackedMovedAlongLineHorizontal
+        ) ?: return true
+
+        val trackedPoint2 = this.trackedPoint2
+        if (null != trackedPoint2) {
+            val newTrackedViewPoint2 = calculateNewViewPoint(
+                    dx,
+                    dy,
+                    trackedViewPoint2,
+                    trackedAllowedRect2,
+                    trackedMovedAlongLine2,
+                    trackedMovedAlongLineHorizontal
+            ) ?: return true
+
+            trackedViewPoint2.set(newTrackedViewPoint2)
+            trackedPoint2.set(transform.mapToBitmap(trackedViewPoint2))
+        }
+
+        trackedViewPoint.set(newTrackedViewPoint)
+        trackedPoint.set(transform.mapToBitmap(trackedViewPoint))
+
+        invalidate()
+        onPerspectiveChanged?.invoke()
+
+        return true
+    }
+
+    private fun handleActionUp(): Boolean {
+        if (null != trackedPoint) {
+            trackedPoint = null
+            trackedPoint2 = null
+            onEditEnd?.invoke()
+            return true
+        }
+
+        return false
+    }
+
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (null == event) return true
         val bitmap = super.getBitmap() ?: return true
 
         when( event.action ) {
-            MotionEvent.ACTION_DOWN -> {
-                if (null == trackedPoint) {
-                    transform.set(bitmap.width, bitmap.height, viewRect)
-
-                    val screenPoint = PointF(event.x, event.y)
-                    val viewPerspective = transform.mapToView(perspectivePoints)
-                    val minDistance = dpToPixels(MIN_POINT_DISTANCE_TO_TRACK)
-
-                    trackedOldPosition.set(event.x, event.y)
-
-                    when {
-                        distance(viewPerspective.pointLeftTop, screenPoint) < minDistance -> {
-                            startEdit(
-                                    perspectivePoints.pointLeftTop,
-                                    viewPerspective.pointLeftTop,
-                                    viewPerspective.safeRectLeftTop(),
-                                    getMoveAlongLine( viewPerspective.pointLeftTop, viewPerspective.pointRightTop, viewPerspective.pointLeftBottom ),
-                                    pointEditDirection == POINT_EDIT_DIRECTION_HORIZONTAL
-                            )
-                        }
-
-                        distance(viewPerspective.pointLeftBottom, screenPoint) < minDistance -> {
-                            startEdit(
-                                    perspectivePoints.pointLeftBottom,
-                                    viewPerspective.pointLeftBottom,
-                                    viewPerspective.safeRectLeftBottom(),
-                                    getMoveAlongLine( viewPerspective.pointLeftBottom, viewPerspective.pointRightBottom, viewPerspective.pointLeftTop ),
-                            pointEditDirection == POINT_EDIT_DIRECTION_HORIZONTAL
-                            )
-                        }
-
-                        distance(viewPerspective.pointRightTop, screenPoint) < minDistance -> {
-                            startEdit(
-                                    perspectivePoints.pointRightTop,
-                                    viewPerspective.pointRightTop,
-                                    viewPerspective.safeRectRightTop(),
-                                    getMoveAlongLine( viewPerspective.pointRightTop, viewPerspective.pointLeftTop, viewPerspective.pointRightBottom ),
-                                    pointEditDirection == POINT_EDIT_DIRECTION_HORIZONTAL
-                            )
-                        }
-
-                        distance(viewPerspective.pointRightBottom, screenPoint) < minDistance -> {
-                            startEdit(
-                                    perspectivePoints.pointRightBottom,
-                                    viewPerspective.pointRightBottom,
-                                    viewPerspective.safeRectRightBottom(),
-                                    getMoveAlongLine( viewPerspective.pointRightBottom, viewPerspective.pointLeftBottom, viewPerspective.pointRightTop ),
-                                    pointEditDirection == POINT_EDIT_DIRECTION_HORIZONTAL
-                            )
-                        }
-                    }
-
-                    if (null != trackedPoint) onEditStart?.invoke()
-                }
-            }
-
-            MotionEvent.ACTION_MOVE -> {
-                val trackedPoint = this.trackedPoint
-
-                if (null != trackedPoint) {
-                    transform.set(bitmap.width, bitmap.height, viewRect)
-
-                    val newTrackedViewPoint = calculateNewViewPoint(
-                            event.x - trackedOldPosition.x,
-                            event.y - trackedOldPosition.y,
-                            trackedViewPoint,
-                            trackedAllowedRect,
-                            trackedMovedAlongLine,
-                            trackedMovedAlongLineHorizontal
-                    )
-
-                    trackedOldPosition.set(event.x, event.y)
-
-                    if (null != newTrackedViewPoint) {
-                        trackedViewPoint.set(newTrackedViewPoint)
-                        trackedPoint.set(transform.mapToBitmap(trackedViewPoint))
-                        invalidate()
-                        onPerspectiveChanged?.invoke()
-                    }
-
-                    return true
-                }
-            }
-
-            MotionEvent.ACTION_UP -> {
-                if (null != trackedPoint) {
-                    trackedPoint = null
-                    onEditEnd?.invoke()
-                    return true
-                }
-            }
+            MotionEvent.ACTION_DOWN -> if (handleActionDown(event, bitmap)) return true
+            MotionEvent.ACTION_MOVE -> if (handleActionMove(event, bitmap)) return true
+            MotionEvent.ACTION_UP -> if (handleActionUp()) return true
         }
 
         if (null != trackedPoint) {

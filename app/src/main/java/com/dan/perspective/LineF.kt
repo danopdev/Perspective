@@ -17,6 +17,9 @@ data class LineF(val from: PointF, val to: PointF) {
         return sqrt(dx * dx + dy * dy)
     }
 
+    fun clone(): LineF =
+            LineF( PointF(from.x, from.y), PointF(to.x, to.y) )
+
     fun intersection( lineOther: LineF ): PointF? {
         val denominator = segmentDeltaX * lineOther.segmentDeltaY - segmentDeltaY * lineOther.segmentDeltaX
         if (abs(denominator) < EPSILON) return null
