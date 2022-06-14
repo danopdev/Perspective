@@ -52,12 +52,12 @@ class BusyDialog(private val title: String): DialogFragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val binding = BusyDialogBinding.inflate( inflater )
-        binding.title.setText(title)
+        binding.title.text = title
         this.binding = binding
         return binding.root
     }
 
     fun setTitle(title: String) {
-        binding.title.setText(title)
+        binding.title.text = title
     }
 }
