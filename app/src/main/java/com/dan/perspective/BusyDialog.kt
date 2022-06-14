@@ -33,6 +33,10 @@ class BusyDialog(private val title: String): DialogFragment() {
             }
         }
 
+        fun setTitle( title: String ) {
+            currentDialog?.setTitle(title)
+        }
+
         fun dismiss(all: Boolean = false) {
             if( counter <= 1 || all) {
                 try {
