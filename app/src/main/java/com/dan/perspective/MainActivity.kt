@@ -50,6 +50,11 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE
         )
 
+        const val MSG_LOAD = "Loading"
+        const val MSG_AUTO_DETECT = "Auto detect"
+        const val MSG_WARP = "Warping"
+        const val MSG_SAVE = "Saving"
+
         const val REQUEST_PERMISSIONS = 1
         const val INTENT_OPEN_IMAGE = 2
 
@@ -203,7 +208,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             R.id.save -> {
-                warpImage()
                 saveImage()
                 return true
             }
@@ -346,7 +350,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setImage(uri: Uri) {
-        runAsync("Loading") {
+        runAsync(MSG_LOAD) {
             runOnUiThread {
                 setEditMode(true)
             }
@@ -413,82 +417,92 @@ class MainActivity : AppCompatActivity() {
         return convertToDepth(imageRGB, settings.engineDepth)
     }
 
-    private fun saveImage() {
+    private fun saveImageAsync() {
+        if (inputImage.empty()) return
+
+        warpImageAsync()
         if (outputImage.empty()) return
 
-        runAsync("Saving") {
+        setBusyDialogTitleAsync(MSG_SAVE)
 
-            val outputExtension = settings.outputExtension()
+        val outputExtension = settings.outputExtension()
 
-            try {
-                var fileName = "${outputName}.${outputExtension}"
-                var fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
-                var counter = 0
-                while (File(fileFullPath).exists() && counter < 998) {
-                    counter++
-                    val counterStr = "%03d".format(counter)
-                    fileName = "${outputName}_${counterStr}.${outputExtension}"
-                    fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
-                }
-
-                val outputRGB = Mat()
-                cvtColor(outputImage, outputRGB, COLOR_BGR2RGB)
-
-                var outputDepth = Settings.DEPTH_AUTO
-
-                if (Settings.OUTPUT_TYPE_JPEG == settings.outputType
-                        || (Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_8_BITS == settings.pngDepth)
-                        || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_8_BITS == settings.tiffDepth)
-                ) {
-                    outputDepth = Settings.DEPTH_8_BITS
-                } else if ((Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_16_BITS == settings.pngDepth)
-                        || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_16_BITS == settings.tiffDepth)
-                ) {
-                    outputDepth = Settings.DEPTH_16_BITS
-                }
-
-                File(fileFullPath).parentFile?.mkdirs()
-
-                val outputParams = MatOfInt()
-
-                if (Settings.OUTPUT_TYPE_JPEG == settings.outputType) {
-                    outputParams.fromArray(Imgcodecs.IMWRITE_JPEG_QUALITY, settings.jpegQuality)
-                }
-
-                Imgcodecs.imwrite(fileFullPath, convertToDepth(outputRGB, outputDepth), outputParams)
-
-                inputUri?.let { uri ->
-                    ExifTools.copyExif( contentResolver, uri, fileFullPath )
-                }
-
-                runOnUiThread {
-                    //Add it to gallery
-                    val values = ContentValues()
-                    @Suppress("DEPRECATION")
-                    values.put(MediaStore.Images.Media.DATA, fileFullPath)
-                    values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
-                    contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
-
-                    val perspectivePoints = binding.imageEdit.getPerspective()
-                    settings.prevWidth = outputImage.width()
-                    settings.prevHeight = outputImage.height()
-                    settings.prevLeftTopX = perspectivePoints.pointLeftTop.x
-                    settings.prevLeftTopY = perspectivePoints.pointLeftTop.y
-                    settings.prevRightTopX = perspectivePoints.pointRightTop.x
-                    settings.prevRightTopY = perspectivePoints.pointRightTop.y
-                    settings.prevLeftBottomX = perspectivePoints.pointLeftBottom.x
-                    settings.prevLeftBottomY = perspectivePoints.pointLeftBottom.y
-                    settings.prevRightBottomX = perspectivePoints.pointRightBottom.x
-                    settings.prevRightBottomY = perspectivePoints.pointRightBottom.y
-                    settings.saveProperties()
-
-                    menuPrevPerspective?.isEnabled = true
-                }
-
-                showToast("Saved to: $fileName")
-            } catch (e: Exception) {
-                showToast("Failed to save")
+        try {
+            var fileName = "${outputName}.${outputExtension}"
+            var fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
+            var counter = 0
+            while (File(fileFullPath).exists() && counter < 998) {
+                counter++
+                val counterStr = "%03d".format(counter)
+                fileName = "${outputName}_${counterStr}.${outputExtension}"
+                fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
             }
+
+            val outputRGB = Mat()
+            cvtColor(outputImage, outputRGB, COLOR_BGR2RGB)
+
+            var outputDepth = Settings.DEPTH_AUTO
+
+            if (Settings.OUTPUT_TYPE_JPEG == settings.outputType
+                || (Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_8_BITS == settings.pngDepth)
+                || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_8_BITS == settings.tiffDepth)
+            ) {
+                outputDepth = Settings.DEPTH_8_BITS
+            } else if ((Settings.OUTPUT_TYPE_PNG == settings.outputType && Settings.DEPTH_16_BITS == settings.pngDepth)
+                || (Settings.OUTPUT_TYPE_TIFF == settings.outputType && Settings.DEPTH_16_BITS == settings.tiffDepth)
+            ) {
+                outputDepth = Settings.DEPTH_16_BITS
+            }
+
+            File(fileFullPath).parentFile?.mkdirs()
+
+            val outputParams = MatOfInt()
+
+            if (Settings.OUTPUT_TYPE_JPEG == settings.outputType) {
+                outputParams.fromArray(Imgcodecs.IMWRITE_JPEG_QUALITY, settings.jpegQuality)
+            }
+
+            Imgcodecs.imwrite(fileFullPath, convertToDepth(outputRGB, outputDepth), outputParams)
+
+            inputUri?.let { uri ->
+                ExifTools.copyExif( contentResolver, uri, fileFullPath )
+            }
+
+            runOnUiThread {
+                //Add it to gallery
+                val values = ContentValues()
+                @Suppress("DEPRECATION")
+                values.put(MediaStore.Images.Media.DATA, fileFullPath)
+                values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
+                contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+
+                val perspectivePoints = binding.imageEdit.getPerspective()
+                settings.prevWidth = outputImage.width()
+                settings.prevHeight = outputImage.height()
+                settings.prevLeftTopX = perspectivePoints.pointLeftTop.x
+                settings.prevLeftTopY = perspectivePoints.pointLeftTop.y
+                settings.prevRightTopX = perspectivePoints.pointRightTop.x
+                settings.prevRightTopY = perspectivePoints.pointRightTop.y
+                settings.prevLeftBottomX = perspectivePoints.pointLeftBottom.x
+                settings.prevLeftBottomY = perspectivePoints.pointLeftBottom.y
+                settings.prevRightBottomX = perspectivePoints.pointRightBottom.x
+                settings.prevRightBottomY = perspectivePoints.pointRightBottom.y
+                settings.saveProperties()
+
+                menuPrevPerspective?.isEnabled = true
+            }
+
+            showToast("Saved to: $fileName")
+        } catch (e: Exception) {
+            showToast("Failed to save")
+        }
+    }
+
+    private fun saveImage() {
+        if (inputImage.empty()) return
+
+        runAsync(MSG_SAVE) {
+            saveImageAsync()
         }
     }
 
@@ -503,42 +517,57 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setBusyDialogTitleAsync(title: String) {
+        runOnUiThread {
+            BusyDialog.setTitle(title)
+        }
+    }
+
+    private fun warpImageAsync() {
+        if (inputImage.empty()) return
+        if (!outputImage.empty()) return
+
+        setBusyDialogTitleAsync(MSG_WARP)
+
+        val perspectivePoints = binding.imageEdit.getPerspective()
+
+        val srcMat = Mat(4, 1, CV_32FC2)
+        srcMat.put(
+            0, 0,
+            perspectivePoints.pointLeftTop.x.toDouble(), perspectivePoints.pointLeftTop.y.toDouble(),
+            perspectivePoints.pointRightTop.x.toDouble(), perspectivePoints.pointRightTop.y.toDouble(),
+            perspectivePoints.pointRightBottom.x.toDouble(), perspectivePoints.pointRightBottom.y.toDouble(),
+            perspectivePoints.pointLeftBottom.x.toDouble(), perspectivePoints.pointLeftBottom.y.toDouble(),
+        )
+
+        val destLeft = (perspectivePoints.pointLeftTop.x + perspectivePoints.pointLeftBottom.x) / 2.0
+        val destRight = (perspectivePoints.pointRightTop.x + perspectivePoints.pointRightBottom.x) / 2.0
+        val destTop = (perspectivePoints.pointLeftTop.y + perspectivePoints.pointRightTop.y) / 2.0
+        val destBottom = (perspectivePoints.pointLeftBottom.y + perspectivePoints.pointRightBottom.y) / 2.0
+
+        val destMat = Mat(4, 1, CV_32FC2)
+        destMat.put(
+            0, 0,
+            destLeft, destTop,
+            destRight, destTop,
+            destRight, destBottom,
+            destLeft, destBottom
+        )
+
+        val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
+        warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
+
+        runOnUiThread {
+            binding.imagePreview.setBitmap(matToBitmap(outputImage))
+        }
+    }
+
     private fun warpImage() {
         if (inputImage.empty()) return
         if (!outputImage.empty()) return
 
-        runAsync( "Warping") {
-            val perspectivePoints = binding.imageEdit.getPerspective()
-
-            val srcMat = Mat(4, 1, CV_32FC2)
-            srcMat.put(
-                    0, 0,
-                    perspectivePoints.pointLeftTop.x.toDouble(), perspectivePoints.pointLeftTop.y.toDouble(),
-                    perspectivePoints.pointRightTop.x.toDouble(), perspectivePoints.pointRightTop.y.toDouble(),
-                    perspectivePoints.pointRightBottom.x.toDouble(), perspectivePoints.pointRightBottom.y.toDouble(),
-                    perspectivePoints.pointLeftBottom.x.toDouble(), perspectivePoints.pointLeftBottom.y.toDouble(),
-            )
-
-            val destLeft = (perspectivePoints.pointLeftTop.x + perspectivePoints.pointLeftBottom.x) / 2.0
-            val destRight = (perspectivePoints.pointRightTop.x + perspectivePoints.pointRightBottom.x) / 2.0
-            val destTop = (perspectivePoints.pointLeftTop.y + perspectivePoints.pointRightTop.y) / 2.0
-            val destBottom = (perspectivePoints.pointLeftBottom.y + perspectivePoints.pointRightBottom.y) / 2.0
-
-            val destMat = Mat(4, 1, CV_32FC2)
-            destMat.put(
-                    0, 0,
-                    destLeft, destTop,
-                    destRight, destTop,
-                    destRight, destBottom,
-                    destLeft, destBottom
-            )
-
-            val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
-            warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
-
-            runOnUiThread {
-                binding.imagePreview.setBitmap(matToBitmap(outputImage))
-            }
+        runAsync(MSG_WARP) {
+            warpImageAsync()
         }
     }
 
@@ -708,7 +737,7 @@ class MainActivity : AppCompatActivity() {
     private fun autoDetectPerspective() {
         if (inputImage.empty()) return
 
-        runAsync("Auto detect") {
+        runAsync(MSG_AUTO_DETECT) {
             autoDetectPerspectiveAsync()
         }
     }
