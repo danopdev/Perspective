@@ -9,8 +9,8 @@ data class LineF(val from: PointF, val to: PointF) {
         private const val EPSILON: Float = 0.01f
     }
 
-    val segmentDeltaX: Float get() = to.x - from.y;
-    val segmentDeltaY: Float get() = to.y - from.y;
+    val segmentDeltaX: Float get() = to.x - from.x
+    val segmentDeltaY: Float get() = to.y - from.y
     val segmentLength: Float get() {
         val dx = segmentDeltaX
         val dy = segmentDeltaY
