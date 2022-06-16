@@ -14,7 +14,7 @@ For edit mode you can lock a direction (horizontal or vertical) so you can move 
 
 Initial perspective | Auto-detected perspective | Warped preview
 --- | --- | ---
-![Initial perspective](examples/screenshots/initial_perspective.png) | ![Warped perspective](examples/screenshots/auto_perspective.png) | ![Warped preview](examples/screenshots/warped_preview.png)
+![Initial perspective](examples/screenshots/initial_perspective_small.jpg) | ![Warped perspective](examples/screenshots/auto_perspective_small.jpg) | ![Warped preview](examples/screenshots/warped_preview_small.jpg)
 
 ## To Do ##
 
