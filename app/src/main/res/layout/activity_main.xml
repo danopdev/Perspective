@@ -44,6 +44,13 @@
                     android:textAllCaps="false"
                     android:textColor="@color/button_text" />
 
+                <CheckBox
+                    android:id="@+id/checkBoxInpaint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0"
+                    android:text="Inpaint" />
+
                 <TextView
                     android:id="@+id/textView3"
                     android:layout_width="wrap_content"

@@ -33,9 +33,11 @@ import org.opencv.core.Core.minMaxLoc
 import org.opencv.core.CvType.*
 import org.opencv.core.Mat
 import org.opencv.core.MatOfInt
+import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc.*
+import org.opencv.xphoto.Xphoto
 import java.io.File
 import kotlin.math.PI
 import kotlin.math.abs
@@ -240,7 +242,7 @@ class MainActivity : AppCompatActivity() {
                     )
                 )
 
-                return true;
+                return true
             }
         }
 
@@ -395,6 +397,7 @@ class MainActivity : AppCompatActivity() {
         binding.radioButtonPointDirectionAll.isEnabled = enabled
         binding.radioButtonPointDirectionHorizontal.isEnabled = enabled
         binding.radioButtonPointDirectionVertical.isEnabled = enabled
+        binding.checkBoxInpaint.isEnabled = enabled
 
         menuSave?.isEnabled = enabled
         menuPrevPerspective?.isEnabled = enabled && settings.prevHeight > 0
@@ -420,7 +423,7 @@ class MainActivity : AppCompatActivity() {
     private fun saveImageAsync() {
         if (inputImage.empty()) return
 
-        warpImageAsync()
+        warpImageAsync( binding.checkBoxInpaint.isChecked )
         if (outputImage.empty()) return
 
         setBusyDialogTitleAsync(MSG_SAVE)
@@ -523,7 +526,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun warpImageAsync() {
+    private fun warpImageAsync( inpaint: Boolean ) {
         if (inputImage.empty()) return
         if (!outputImage.empty()) return
 
@@ -557,6 +560,14 @@ class MainActivity : AppCompatActivity() {
         val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
         warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
 
+        if (inpaint) {
+            val tmpMat = Mat(inputImage.width(), inputImage.height(), CV_8UC1, Scalar(255.0))
+            val warpedMask = Mat()
+            warpPerspective(tmpMat, warpedMask, perspectiveMat, inputImage.size(), INTER_NEAREST)
+            Xphoto.inpaint( outputImage, warpedMask, tmpMat, Xphoto.INPAINT_SHIFTMAP )
+            outputImage = tmpMat
+        }
+
         runOnUiThread {
             binding.imagePreview.setBitmap(matToBitmap(outputImage))
         }
@@ -566,8 +577,10 @@ class MainActivity : AppCompatActivity() {
         if (inputImage.empty()) return
         if (!outputImage.empty()) return
 
+        val inpaint = binding.checkBoxInpaint.isChecked
+
         runAsync(MSG_WARP) {
-            warpImageAsync()
+            warpImageAsync(inpaint)
         }
     }
 
@@ -754,6 +767,10 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(binding.root)
         updateButtons()
+
+        binding.checkBoxInpaint.setOnCheckedChangeListener { _, _ ->
+            clearOutputImage()
+        }
 
         binding.buttonReset.setOnClickListener {
             binding.imageEdit.resetPoints()
