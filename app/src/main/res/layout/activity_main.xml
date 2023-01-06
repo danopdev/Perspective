@@ -27,29 +27,20 @@
 
                 <Button
                     android:id="@+id/buttonReset"
-                    style="@style/Widget.AppCompat.Button.Borderless"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Reset"
-                    android:textAllCaps="false"
-                    android:textColor="@color/button_text" />
+                    android:textAllCaps="false" />
 
                 <Button
                     android:id="@+id/buttonAuto"
-                    style="@style/Widget.AppCompat.Button.Borderless"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="0"
                     android:text="Auto"
-                    android:textAllCaps="false"
-                    android:textColor="@color/button_text" />
-
-                <CheckBox
-                    android:id="@+id/checkBoxInpaint"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="0"
-                    android:text="Inpaint" />
+                    android:textAllCaps="false"/>
 
                 <TextView
                     android:id="@+id/textView3"
@@ -59,20 +50,32 @@
 
                 <Button
                     android:id="@+id/buttonPreview"
-                    style="@style/Widget.AppCompat.Button.Borderless"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="0"
                     android:text="Preview &gt;"
-                    android:textAllCaps="false"
-                    android:textColor="@color/button_text" />
+                    android:textAllCaps="false"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/checkBoxInpaint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Inpaint" />
+
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
@@ -114,7 +117,6 @@
                 android:id="@+id/frameLayout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/teal_700"
                 android:padding="3dp">
 
                 <com.dan.perspective.EditPerspectiveImageView
@@ -131,7 +133,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:alpha="0"
-            android:background="@color/design_default_color_background"
             android:orientation="vertical"
             android:scaleX="1.2"
             android:scaleY="1.2"
@@ -149,12 +150,11 @@
 
                 <Button
                     android:id="@+id/buttonEdit"
-                    style="@style/Widget.AppCompat.Button.Borderless"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="&lt;  Edit"
-                    android:textAllCaps="false"
-                    android:textColor="@color/button_text" />
+                    android:textAllCaps="false"/>
 
             </LinearLayout>
 
@@ -162,7 +162,6 @@
                 android:id="@+id/frameLayout2"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/teal_700"
                 android:padding="3dp">
 
                 <com.dan.perspective.TouchImageView
