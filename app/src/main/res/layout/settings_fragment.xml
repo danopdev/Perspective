@@ -23,7 +23,6 @@
                     android:layout_height="wrap_content"
                     android:text="Output Format"
                     android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                    android:textColor="@color/black"
                     android:textStyle="bold" />
 
                 <RadioGroup
@@ -136,7 +135,6 @@
                     android:layout_marginBottom="5dp"
                     android:text="Engine Options"
                     android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                    android:textColor="@color/black"
                     android:textStyle="bold" />
 
                 <LinearLayout
@@ -177,7 +175,6 @@
                     android:layout_marginBottom="5dp"
                     android:text="Interface"
                     android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                    android:textColor="@color/black"
                     android:textStyle="bold" />
 
                 <Switch
