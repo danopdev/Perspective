@@ -3,7 +3,6 @@ package com.dan.perspective
 import android.graphics.PointF
 import android.graphics.RectF
 
-
 class Bitmap2View( bitmapWidth: Int = -1, bitmapHeight: Int = -1, viewRect: RectF = RectF() ) {
     private val scale = PointF(1f, 1f)
     private val delta = PointF( 0f, 0f)
