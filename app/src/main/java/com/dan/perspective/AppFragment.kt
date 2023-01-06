@@ -3,7 +3,7 @@ package com.dan.perspective
 import androidx.fragment.app.Fragment
 
 open class AppFragment(val activity: MainActivity) : Fragment() {
-    open fun onBack(backButton: Boolean) {
+    open fun onBack(homeButton: Boolean) {
     }
 
     fun showToast(message: String) {

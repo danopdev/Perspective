@@ -22,7 +22,7 @@ class SettingsFragment(activity: MainActivity) : AppFragment(activity) {
     private val settings = activity.settings
     private lateinit var binding: SettingsFragmentBinding
 
-    override fun onBack(backButton: Boolean) {
+    override fun onBack(homeButton: Boolean) {
         if (binding.radioPng.isChecked) activity.settings.outputType = Settings.OUTPUT_TYPE_PNG
         else if (binding.radioTiff.isChecked) activity.settings.outputType = Settings.OUTPUT_TYPE_TIFF
         else activity.settings.outputType = Settings.OUTPUT_TYPE_JPEG

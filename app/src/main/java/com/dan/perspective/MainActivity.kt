@@ -29,13 +29,13 @@ class MainActivity : AppCompatActivity() {
     private val stack = mutableListOf<Pair<String, AppFragment>>()
     val settings: Settings by lazy { Settings(this) }
 
-    private fun popView(callOnBack: Boolean = false, backButton: Boolean = false): Boolean {
+    private fun popView(homeButton: Boolean = false): Boolean {
         if (stack.size <= 1) return false
 
         val prevFragment = stack.removeLast().second
         val item = stack.last()
 
-        if (callOnBack) prevFragment.onBack(backButton)
+        prevFragment.onBack(homeButton)
 
         val transaction = supportFragmentManager.beginTransaction()
         transaction.show(item.second)
@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (android.R.id.home == item.itemId) {
-            popView(true, true)
+            popView(true)
             return true
         }
 
@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (!popView(true, false)) super.onBackPressed()
+        if (!popView(false)) super.onBackPressed()
     }
 
     fun giveHapticFeedback(view: View) {
