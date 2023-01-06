@@ -5,8 +5,8 @@ import android.graphics.RectF
 
 
 class Bitmap2View( bitmapWidth: Int = -1, bitmapHeight: Int = -1, viewRect: RectF = RectF() ) {
-    val scale = PointF(1f, 1f)
-    val delta = PointF( 0f, 0f)
+    private val scale = PointF(1f, 1f)
+    private val delta = PointF( 0f, 0f)
     private var bitmapWidth = -1
     private var bitmapHeight = -1
     private val viewRect = RectF()
