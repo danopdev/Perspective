@@ -1,14 +1,13 @@
 package com.dan.perspective
 
-import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Point
 import android.graphics.PointF
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
-import android.provider.MediaStore
 import android.view.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.documentfile.provider.DocumentFile
@@ -294,11 +293,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
             runOnUiThread {
                 //Add it to gallery
-                val values = ContentValues()
-                @Suppress("DEPRECATION")
-                values.put(MediaStore.Images.Media.DATA, fileFullPath)
-                values.put(MediaStore.Images.Media.MIME_TYPE, "image/${outputExtension}")
-                activity.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                MediaScannerConnection.scanFile(context, arrayOf(fileFullPath), null, null)
 
                 val perspectivePoints = binding.imageEdit.getPerspective()
                 activity.settings.prevWidth = outputImage.width()
