@@ -19,4 +19,3 @@ Initial perspective | Auto-detected perspective | Warped preview
 ## To Do ##
 
 * Add "UNDO / REDO" buttons
-* Allow portrait mode: in this mode show side by side edit and preview
