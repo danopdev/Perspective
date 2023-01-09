@@ -1,0 +1,1 @@
+<p><i>Perspective</i> is an Android application to fix perspective in photos. Internaly it uses OpenCL to load / save and warp photos. There is an auto-detection (but doesn't work correctly all the time).</p><p>For edit mode you can lock a direction (horizontal or vertical) so you can move points only in one direction.</p>
