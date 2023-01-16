@@ -3,6 +3,7 @@ package com.dan.perspective
 
 import android.app.Activity
 import android.content.Context
+import android.os.Environment
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.createType
@@ -14,7 +15,7 @@ Settings: all public var fields will be saved
 class Settings( private val activity: Activity) {
 
     companion object {
-        const val SAVE_FOLDER = "/storage/emulated/0/Pictures/Perspective"
+        val SAVE_FOLDER = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Perspective"
         const val DEFAULT_NAME = "output"
 
         const val EXT_JPEG = "jpeg"
