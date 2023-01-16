@@ -26,8 +26,8 @@ android {
         applicationId "com.dan.perspective"
         minSdkVersion 24
         targetSdkVersion 30
-        versionCode 3
-        versionName '1.8'
+        versionCode 4
+        versionName '1.10'
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
