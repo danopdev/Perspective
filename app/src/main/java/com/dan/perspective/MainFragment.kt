@@ -18,10 +18,8 @@ import org.opencv.core.Core.mean
 import org.opencv.core.Core.minMaxLoc
 import org.opencv.core.CvType.*
 import org.opencv.core.Mat
-import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc.*
-import org.opencv.xphoto.Xphoto
 import java.io.File
 import kotlin.math.PI
 import kotlin.math.abs
@@ -191,7 +189,6 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         binding.radioButtonPointDirectionAll.isEnabled = enabled
         binding.radioButtonPointDirectionHorizontal.isEnabled = enabled
         binding.radioButtonPointDirectionVertical.isEnabled = enabled
-        binding.checkBoxInpaint.isEnabled = enabled
 
         menuSave?.isEnabled = enabled
         menuPrevPerspective?.isEnabled = enabled && settings.prevHeight > 0
@@ -215,7 +212,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
     private fun saveImageAsync() {
         if (inputImage.empty()) return
 
-        warpImageAsync( binding.checkBoxInpaint.isChecked )
+        warpImageAsync()
         if (outputImage.empty()) return
         val bitmap = matToBitmap(outputImage) ?: return
 
@@ -282,7 +279,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         }
     }
 
-    private fun warpImageAsync( inpaint: Boolean ) {
+    private fun warpImageAsync() {
         if (inputImage.empty()) return
         if (!outputImage.empty()) return
 
@@ -315,14 +312,6 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
         val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
         warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
-
-        if (inpaint) {
-            val tmpMat = Mat(inputImage.width(), inputImage.height(), CV_8UC1, Scalar(255.0))
-            val warpedMask = Mat()
-            warpPerspective(tmpMat, warpedMask, perspectiveMat, inputImage.size(), INTER_NEAREST)
-            Xphoto.inpaint( outputImage, warpedMask, tmpMat, Xphoto.INPAINT_SHIFTMAP )
-            outputImage = tmpMat
-        }
     }
 
     private fun showPreview() {
@@ -341,10 +330,8 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
             return
         }
 
-        val inpaint = binding.checkBoxInpaint.isChecked
-
         runAsync(MSG_WARP) {
-            warpImageAsync(inpaint)
+            warpImageAsync()
             showPreview()
         }
     }
@@ -527,10 +514,6 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         binding = MainFragmentBinding.inflate(inflater)
 
         updateButtons()
-
-        binding.checkBoxInpaint.setOnCheckedChangeListener { _, _ ->
-            clearOutputImage()
-        }
 
         binding.buttonReset.setOnClickListener {
             binding.imageEdit.resetPoints()
