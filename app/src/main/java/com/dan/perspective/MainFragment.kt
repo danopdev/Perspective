@@ -2,6 +2,7 @@ package com.dan.perspective
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Point
 import android.graphics.PointF
 import android.media.MediaScannerConnection
@@ -17,10 +18,8 @@ import org.opencv.core.Core.mean
 import org.opencv.core.Core.minMaxLoc
 import org.opencv.core.CvType.*
 import org.opencv.core.Mat
-import org.opencv.core.MatOfInt
 import org.opencv.core.Scalar
 import org.opencv.core.Size
-import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc.*
 import org.opencv.xphoto.Xphoto
 import java.io.File
@@ -38,9 +37,6 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         const val MSG_SAVE = "Saving"
 
         const val INTENT_OPEN_IMAGE = 2
-
-        const val ALPHA_8_TO_16 = 256.0
-        const val ALPHA_16_TO_8 = 1.0 / ALPHA_8_TO_16
 
         const val AUTO_DETECT_WORK_SIZE = 1024
 
@@ -65,7 +61,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         menuSave?.isEnabled = !inputImage.empty()
 
         menuPrevPerspective = menu.findItem(R.id.prevPerspective)
-        menuPrevPerspective?.isEnabled = !inputImage.empty() && activity.settings.prevHeight > 0
+        menuPrevPerspective?.isEnabled = !inputImage.empty() && settings.prevHeight > 0
     }
 
     override fun onDestroyOptionsMenu() {
@@ -92,24 +88,24 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
             }
 
             R.id.prevPerspective -> {
-                if (activity.settings.prevHeight < 1) return true
+                if (settings.prevHeight < 1) return true
                 if (inputImage.empty()) return true
 
                 binding.imageEdit.setPerspective(
-                    PointF(activity.settings.prevLeftTopX * inputImage.width() / activity.settings.prevWidth,
-                        activity.settings.prevLeftTopY * inputImage.height() / activity.settings.prevHeight
+                    PointF(settings.prevLeftTopX * inputImage.width() / settings.prevWidth,
+                        settings.prevLeftTopY * inputImage.height() / settings.prevHeight
                     ),
                     PointF(
-                        activity.settings.prevRightTopX * inputImage.width() / activity.settings.prevWidth,
-                        activity.settings.prevRightTopY * inputImage.height() / activity.settings.prevHeight
+                        settings.prevRightTopX * inputImage.width() / settings.prevWidth,
+                        settings.prevRightTopY * inputImage.height() / settings.prevHeight
                     ),
                     PointF(
-                        activity.settings.prevLeftBottomX * inputImage.width() / activity.settings.prevWidth,
-                        activity.settings.prevLeftBottomY * inputImage.height() / activity.settings.prevHeight
+                        settings.prevLeftBottomX * inputImage.width() / settings.prevWidth,
+                        settings.prevLeftBottomY * inputImage.height() / settings.prevHeight
                     ),
                     PointF(
-                        activity.settings.prevRightBottomX * inputImage.width() / activity.settings.prevWidth,
-                        activity.settings.prevRightBottomY * inputImage.height() / activity.settings.prevHeight
+                        settings.prevRightBottomX * inputImage.width() / settings.prevWidth,
+                        settings.prevRightBottomY * inputImage.height() / settings.prevHeight
                     )
                 )
 
@@ -139,28 +135,6 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         startActivityForResult(intent, INTENT_OPEN_IMAGE)
     }
 
-    private fun convertToDepth(image: Mat, depth: Int) : Mat {
-        when( depth ) {
-            Settings.DEPTH_8_BITS -> {
-                if (CV_16UC3 == image.type()) {
-                    val newImage = Mat()
-                    image.convertTo(newImage, CV_8UC3, ALPHA_16_TO_8)
-                    return newImage
-                }
-            }
-
-            Settings.DEPTH_16_BITS -> {
-                if (CV_8UC3 == image.type()) {
-                    val newImage = Mat()
-                    image.convertTo(newImage, CV_16UC3, ALPHA_8_TO_16)
-                    return newImage
-                }
-            }
-        }
-
-        return image
-    }
-
     private fun matToBitmap(image: Mat): Bitmap? {
         if (image.empty()) return null
 
@@ -170,7 +144,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
                 Bitmap.Config.ARGB_8888
         )
 
-        Utils.matToBitmap( convertToDepth( image, Settings.DEPTH_8_BITS ) , bitmap)
+        Utils.matToBitmap( image, bitmap)
         return bitmap
     }
 
@@ -220,24 +194,22 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         binding.checkBoxInpaint.isEnabled = enabled
 
         menuSave?.isEnabled = enabled
-        menuPrevPerspective?.isEnabled = enabled && activity.settings.prevHeight > 0
+        menuPrevPerspective?.isEnabled = enabled && settings.prevHeight > 0
     }
 
     private fun loadImage(uri: Uri) : Mat {
-        // Can't create MatOfByte from kotlin ByteArray, but works correctly from java byte[]
-        val image = OpenCVLoadImageFromUri.load(uri, activity.contentResolver)
-        if (null == image || image.empty()) return Mat()
-
-        inputUri = uri
-        val imageRGB = Mat()
-
-        when(image.type()) {
-            CV_8UC3, CV_16UC3 -> cvtColor(image, imageRGB, COLOR_BGR2RGB)
-            CV_8UC4, CV_16UC4 -> cvtColor(image, imageRGB, COLOR_BGRA2RGB)
-            else -> return Mat()
+        try {
+            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return Mat()
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            val image =  Mat()
+            Utils.bitmapToMat(bitmap, image)
+            inputStream.close()
+            return image
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
-        return convertToDepth(imageRGB, activity.settings.engineDepth)
+        return Mat()
     }
 
     private fun saveImageAsync() {
@@ -245,68 +217,47 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
         warpImageAsync( binding.checkBoxInpaint.isChecked )
         if (outputImage.empty()) return
+        val bitmap = matToBitmap(outputImage) ?: return
 
         setBusyDialogTitleAsync(MSG_SAVE)
 
-        val outputExtension = activity.settings.outputExtension()
-
         try {
-            var fileName = "${outputName}.${outputExtension}"
-            var fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
+            var fileName = "${outputName}.jpg"
+            var file = File(Settings.SAVE_FOLDER, fileName)
             var counter = 0
-            while (File(fileFullPath).exists() && counter < 998) {
+            while (file.exists() && counter < 998) {
                 counter++
                 val counterStr = "%03d".format(counter)
-                fileName = "${outputName}_${counterStr}.${outputExtension}"
-                fileFullPath = Settings.SAVE_FOLDER + "/" + fileName
+                fileName = "${outputName}_${counterStr}.jpg"
+                file = File(Settings.SAVE_FOLDER, fileName)
             }
 
-            val outputRGB = Mat()
-            cvtColor(outputImage, outputRGB, COLOR_BGR2RGB)
+            file.parentFile?.mkdirs()
 
-            var outputDepth = Settings.DEPTH_AUTO
-
-            if (Settings.OUTPUT_TYPE_JPEG == activity.settings.outputType
-                || (Settings.OUTPUT_TYPE_PNG == activity.settings.outputType && Settings.DEPTH_8_BITS == activity.settings.pngDepth)
-                || (Settings.OUTPUT_TYPE_TIFF == activity.settings.outputType && Settings.DEPTH_8_BITS == activity.settings.tiffDepth)
-            ) {
-                outputDepth = Settings.DEPTH_8_BITS
-            } else if ((Settings.OUTPUT_TYPE_PNG == activity.settings.outputType && Settings.DEPTH_16_BITS == activity.settings.pngDepth)
-                || (Settings.OUTPUT_TYPE_TIFF == activity.settings.outputType && Settings.DEPTH_16_BITS == activity.settings.tiffDepth)
-            ) {
-                outputDepth = Settings.DEPTH_16_BITS
-            }
-
-            File(fileFullPath).parentFile?.mkdirs()
-
-            val outputParams = MatOfInt()
-
-            if (Settings.OUTPUT_TYPE_JPEG == activity.settings.outputType) {
-                outputParams.fromArray(Imgcodecs.IMWRITE_JPEG_QUALITY, activity.settings.jpegQuality)
-            }
-
-            Imgcodecs.imwrite(fileFullPath, convertToDepth(outputRGB, outputDepth), outputParams)
+            val outputStream = file.outputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, outputStream)
+            outputStream.close()
 
             inputUri?.let { uri ->
-                ExifTools.copyExif( activity.contentResolver, uri, fileFullPath )
+                ExifTools.copyExif( activity.contentResolver, uri, file )
             }
 
             runOnUiThread {
                 //Add it to gallery
-                MediaScannerConnection.scanFile(context, arrayOf(fileFullPath), null, null)
+                MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
 
                 val perspectivePoints = binding.imageEdit.getPerspective()
-                activity.settings.prevWidth = outputImage.width()
-                activity.settings.prevHeight = outputImage.height()
-                activity.settings.prevLeftTopX = perspectivePoints.pointLeftTop.x
-                activity.settings.prevLeftTopY = perspectivePoints.pointLeftTop.y
-                activity.settings.prevRightTopX = perspectivePoints.pointRightTop.x
-                activity.settings.prevRightTopY = perspectivePoints.pointRightTop.y
-                activity.settings.prevLeftBottomX = perspectivePoints.pointLeftBottom.x
-                activity.settings.prevLeftBottomY = perspectivePoints.pointLeftBottom.y
-                activity.settings.prevRightBottomX = perspectivePoints.pointRightBottom.x
-                activity.settings.prevRightBottomY = perspectivePoints.pointRightBottom.y
-                activity.settings.saveProperties()
+                settings.prevWidth = outputImage.width()
+                settings.prevHeight = outputImage.height()
+                settings.prevLeftTopX = perspectivePoints.pointLeftTop.x
+                settings.prevLeftTopY = perspectivePoints.pointLeftTop.y
+                settings.prevRightTopX = perspectivePoints.pointRightTop.x
+                settings.prevRightTopY = perspectivePoints.pointRightTop.y
+                settings.prevLeftBottomX = perspectivePoints.pointLeftBottom.x
+                settings.prevLeftBottomY = perspectivePoints.pointLeftBottom.y
+                settings.prevRightBottomX = perspectivePoints.pointRightBottom.x
+                settings.prevRightBottomY = perspectivePoints.pointRightBottom.y
+                settings.saveProperties()
 
                 menuPrevPerspective?.isEnabled = true
             }
@@ -433,7 +384,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
         val image = Mat()
         resize(
-                convertToDepth( inputImage, Settings.DEPTH_8_BITS ),
+                inputImage,
                 image,
                 Size( AUTO_DETECT_WORK_SIZE.toDouble(), AUTO_DETECT_WORK_SIZE.toDouble()) ,
                 0.0,

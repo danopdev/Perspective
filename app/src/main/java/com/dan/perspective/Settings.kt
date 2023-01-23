@@ -4,6 +4,7 @@ package com.dan.perspective
 import android.app.Activity
 import android.content.Context
 import android.os.Environment
+import java.io.File
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.createType
@@ -15,27 +16,11 @@ Settings: all public var fields will be saved
 class Settings( private val activity: Activity) {
 
     companion object {
-        val SAVE_FOLDER = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Perspective"
+        val SAVE_FOLDER = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Perspective")
         const val DEFAULT_NAME = "output"
-
-        const val EXT_JPEG = "jpeg"
-        const val EXT_PNG = "png"
-        const val EXT_TIFF = "tiff"
-
-        const val OUTPUT_TYPE_JPEG = 0
-        const val OUTPUT_TYPE_PNG = 1
-        const val OUTPUT_TYPE_TIFF = 2
-
-        const val DEPTH_AUTO = 0
-        const val DEPTH_8_BITS = 1
-        const val DEPTH_16_BITS = 2
     }
 
-    var outputType = OUTPUT_TYPE_PNG
     var jpegQuality = 95
-    var pngDepth = DEPTH_AUTO
-    var tiffDepth = DEPTH_AUTO
-    var engineDepth = DEPTH_AUTO
     var hapticFeedback = true
     var prevLeftTopX = -1f
     var prevLeftTopY = -1f
@@ -89,13 +74,5 @@ class Settings( private val activity: Activity) {
         }
 
         editor.apply()
-    }
-
-    fun outputExtension() : String {
-        return when(outputType) {
-            OUTPUT_TYPE_PNG -> EXT_PNG
-            OUTPUT_TYPE_TIFF -> EXT_TIFF
-            else -> EXT_JPEG
-        }
     }
 }

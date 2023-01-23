@@ -3,6 +3,7 @@ package com.dan.perspective
 import android.content.ContentResolver
 import androidx.exifinterface.media.ExifInterface
 import android.net.Uri
+import java.io.File
 import java.io.InputStream
 import java.lang.Exception
 
@@ -82,7 +83,7 @@ class ExifTools {
             ExifInterface.TAG_XMP,
         )
 
-        fun copyExif(contentResolver: ContentResolver, sourceUri: Uri, destinationFile: String ) {
+        fun copyExif(contentResolver: ContentResolver, sourceUri: Uri, destinationFile: File) {
             var inputStream: InputStream? = null
 
             try {
@@ -101,12 +102,14 @@ class ExifTools {
                     exifDestination.saveAttributes()
                 }
             } catch(e: Exception) {
+                e.printStackTrace()
             }
 
             //clean up
             try {
                 inputStream?.close()
             } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
