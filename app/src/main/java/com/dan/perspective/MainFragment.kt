@@ -8,10 +8,13 @@ import android.graphics.PointF
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Parcelable
+import android.provider.MediaStore
 import android.util.Log
 import android.view.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
 import com.dan.perspective.databinding.MainFragmentBinding
 import org.opencv.android.Utils
@@ -21,6 +24,8 @@ import org.opencv.core.Rect
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc.*
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.max
@@ -29,12 +34,12 @@ import kotlin.math.min
 
 class MainFragment(activity: MainActivity) : AppFragment(activity) {
     companion object {
-        const val MSG_LOAD = "Loading"
         const val MSG_AUTO_DETECT = "Auto detect"
         const val MSG_WARP = "Warping"
         const val MSG_SAVE = "Saving"
 
         const val INTENT_OPEN_IMAGE = 2
+        const val INTENT_TAKE_PHOTO = 3
 
         const val AUTO_DETECT_WORK_SIZE = 1024
 
@@ -49,6 +54,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
     private var menuSave: MenuItem? = null
     private var menuPrevPerspective: MenuItem? = null
     private val sharedParams = SharedParams()
+    private lateinit var tmpPhotoFile: File
 
     private lateinit var binding: MainFragmentBinding //: ActivityMainBinding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private var outputName = Settings.DEFAULT_NAME
@@ -82,6 +88,11 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         when(item.itemId) {
             R.id.open -> {
                 startActivityToOpenImage()
+                return true
+            }
+
+            R.id.takePhoto -> {
+                startActivityToTakePhoto()
                 return true
             }
 
@@ -127,8 +138,20 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (resultCode == AppCompatActivity.RESULT_OK && requestCode == INTENT_OPEN_IMAGE) {
-            data?.data?.let { uri -> setImage(uri) }
+        if (resultCode == AppCompatActivity.RESULT_OK && null != data) {
+            when (requestCode) {
+                INTENT_OPEN_IMAGE -> {
+                    data.data?.let { uri -> setImage(uri) }
+                }
+
+                INTENT_TAKE_PHOTO -> {
+                    if (tmpPhotoFile.exists()) {
+                        val name = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date(System.currentTimeMillis()))
+                        setImage( Uri.fromFile(tmpPhotoFile), name )
+                        tmpPhotoFile.delete()
+                    }
+                }
+            }
         }
     }
 
@@ -141,6 +164,18 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
             .addCategory(Intent.CATEGORY_OPENABLE)
             .setType("image/*")
         startActivityForResult(intent, INTENT_OPEN_IMAGE)
+    }
+
+    private fun startActivityToTakePhoto() {
+        val tmpUri = FileProvider.getUriForFile(
+            requireContext(),
+            "com.dan.perspective.provider",
+            tmpPhotoFile)
+
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            .putExtra(MediaStore.EXTRA_OUTPUT, tmpUri)
+        
+        startActivityForResult(intent, INTENT_TAKE_PHOTO)
     }
 
     private fun matToBitmap(image: Mat): Bitmap? {
@@ -156,41 +191,41 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         return bitmap
     }
 
-    private fun setImage(uri: Uri) {
-        runAsync(MSG_LOAD) {
-            inputImage = loadImage(uri)
-            val bitmap = matToBitmap(inputImage)
+    private fun setImage(uri: Uri, suggestedName: String? = null) {
+        val matAndBitmap = loadImage(uri)
+        if (null == matAndBitmap) {
+            showToast("Failed to load the image")
+            return
+        }
 
-            runOnUiThread {
-                binding.imageEdit.setBitmap(bitmap)
+        inputImage = matAndBitmap.first
+        binding.imageEdit.setBitmap(matAndBitmap.second)
 
-                if (null == bitmap) {
-                    showToast("Failed to load the image")
-                } else {
-                    outputName = Settings.DEFAULT_NAME
+        if (null != suggestedName) {
+            outputName = suggestedName
+        } else {
+            outputName = Settings.DEFAULT_NAME
 
-                    try {
-                        DocumentFile.fromSingleUri(
-                                requireContext(),
-                                uri
-                        )?.name?.let { name ->
-                            if (name.isNotEmpty()) {
-                                val fields = name.split('.')
-                                outputName = fields[0]
-                            }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+            try {
+                DocumentFile.fromSingleUri(
+                    requireContext(),
+                    uri
+                )?.name?.let { name ->
+                    if (name.isNotEmpty()) {
+                        val fields = name.split('.')
+                        outputName = fields[0]
                     }
                 }
-
-                clearOutputImage()
-                updateButtons()
-
-                if (settings.autoDetectOnOpen) {
-                    autoDetectPerspective()
-                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
+        }
+
+        clearOutputImage()
+        updateButtons()
+
+        if (settings.autoDetectOnOpen) {
+            autoDetectPerspective()
         }
     }
 
@@ -208,19 +243,19 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         menuPrevPerspective?.isEnabled = enabled && settings.prevHeight > 0
     }
 
-    private fun loadImage(uri: Uri) : Mat {
+    private fun loadImage(uri: Uri) : Pair<Mat,Bitmap>? {
         try {
-            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return Mat()
+            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return null
             val bitmap = BitmapFactory.decodeStream(inputStream)
             val image =  Mat()
             Utils.bitmapToMat(bitmap, image)
             inputStream.close()
-            return image
+            return Pair(image, bitmap)
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        return Mat()
+        return null
     }
 
     private fun saveImageAsync() {
@@ -539,6 +574,8 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        tmpPhotoFile = File(requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES), "tmp.jpg")
+
         binding = MainFragmentBinding.inflate(inflater)
 
         updateButtons()

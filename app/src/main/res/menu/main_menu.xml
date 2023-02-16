@@ -8,6 +8,11 @@
         android:title="Open"
         app:showAsAction="always" />
     <item
+        android:id="@+id/takePhoto"
+        android:icon="@android:drawable/ic_menu_camera"
+        android:title="Take photo"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/save"
         android:icon="@android:drawable/ic_menu_save"
         android:title="Save"
