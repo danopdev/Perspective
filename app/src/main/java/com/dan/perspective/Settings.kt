@@ -32,6 +32,7 @@ class Settings( private val activity: Activity) {
     var prevLeftBottomY = -1f
     var prevWidth = 0
     var prevHeight = 0
+    var autoDetectOnOpen = false
 
     init {
         loadProperties()

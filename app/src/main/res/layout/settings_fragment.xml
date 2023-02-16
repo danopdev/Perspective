@@ -18,9 +18,28 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/textView9"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:paddingTop="16dp"
+                    android:text="Open"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    android:textStyle="bold" />
+
+                <Switch
+                    android:id="@+id/switchAutoPerspectiveOnOpen"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp"
+                    android:text="Auto perspective on open" />
+
+                <TextView
                     android:id="@+id/textView4"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:paddingTop="16dp"
                     android:text="Save"
                     android:textAppearance="@style/TextAppearance.AppCompat.Medium"
                     android:textStyle="bold" />
@@ -29,7 +48,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp">
 
                     <TextView
                         android:id="@+id/textView10"
@@ -56,21 +77,12 @@
                         android:textAlignment="center" />
                 </LinearLayout>
 
-                <View
-                    android:id="@+id/divider4"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginStart="5dp"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginEnd="5dp"
-                    android:layout_marginBottom="16dp"
-                    android:background="@android:drawable/divider_horizontal_textfield" />
-
                 <TextView
                     android:id="@+id/textView8"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="5dp"
+                    android:paddingTop="16dp"
                     android:text="Interface"
                     android:textAppearance="@style/TextAppearance.AppCompat.Medium"
                     android:textStyle="bold" />
@@ -79,6 +91,8 @@
                     android:id="@+id/switchHapticFeedback"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp"
                     android:text="Haptic feedback" />
 
             </LinearLayout>

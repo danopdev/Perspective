@@ -186,6 +186,10 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
                 clearOutputImage()
                 updateButtons()
+
+                if (settings.autoDetectOnOpen) {
+                    autoDetectPerspective()
+                }
             }
         }
     }
