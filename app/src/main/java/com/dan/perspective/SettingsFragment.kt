@@ -23,7 +23,7 @@ class SettingsFragment(activity: MainActivity) : AppFragment(activity) {
     override fun onBack(homeButton: Boolean) {
         settings.jpegQuality = JPEG_QUALITY_BASE + (100 - JPEG_QUALITY_BASE) * binding.seekBarJpegQuality.progress / binding.seekBarJpegQuality.max
         settings.hapticFeedback = binding.switchHapticFeedback.isChecked
-        settings.autoDetectOnOpen = binding.switchAutoPerspectiveOnOpen.isChecked
+        settings.autoDetectOnOpen = binding.switchAutoDetectPerspectiveOnOpen.isChecked
 
         settings.saveProperties()
     }
@@ -31,7 +31,7 @@ class SettingsFragment(activity: MainActivity) : AppFragment(activity) {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         binding = SettingsFragmentBinding.inflate( inflater )
 
-        binding.switchAutoPerspectiveOnOpen.isChecked = settings.autoDetectOnOpen
+        binding.switchAutoDetectPerspectiveOnOpen.isChecked = settings.autoDetectOnOpen
 
         val jpegQualityProgress = when {
             settings.jpegQuality >= 100 -> binding.seekBarJpegQuality.max

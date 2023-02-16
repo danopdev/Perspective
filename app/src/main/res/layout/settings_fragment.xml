@@ -28,12 +28,12 @@
                     android:textStyle="bold" />
 
                 <Switch
-                    android:id="@+id/switchAutoPerspectiveOnOpen"
+                    android:id="@+id/switchAutoDetectPerspectiveOnOpen"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingTop="16dp"
                     android:paddingBottom="16dp"
-                    android:text="Auto perspective on open" />
+                    android:text="Auto-detect perspective on open" />
 
                 <TextView
                     android:id="@+id/textView4"
