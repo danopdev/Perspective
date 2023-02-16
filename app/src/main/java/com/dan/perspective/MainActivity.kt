@@ -42,6 +42,8 @@ class MainActivity : AppCompatActivity() {
         transaction.remove(prevFragment)
         transaction.commit()
 
+        item.second.onActivate()
+
         supportActionBar?.setDisplayHomeAsUpEnabled(stack.size > 1)
         supportActionBar?.title = item.first
 

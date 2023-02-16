@@ -41,6 +41,18 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
+            <Switch
+                android:id="@+id/switchCrop"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Crop" />
+
+            <TextView
+                android:id="@+id/textView6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
             <Button
                 android:id="@+id/buttonPreview"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"

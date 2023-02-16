@@ -9,15 +9,15 @@ import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
+import android.util.Log
 import android.view.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.documentfile.provider.DocumentFile
 import com.dan.perspective.databinding.MainFragmentBinding
 import org.opencv.android.Utils
-import org.opencv.core.Core.mean
-import org.opencv.core.Core.minMaxLoc
 import org.opencv.core.CvType.*
 import org.opencv.core.Mat
+import org.opencv.core.Rect
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc.*
 import java.io.File
@@ -45,12 +45,22 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
     private var inputImage = Mat()
     private var outputImage = Mat()
+    private var outputImageCropped = Mat()
     private var menuSave: MenuItem? = null
     private var menuPrevPerspective: MenuItem? = null
+    private val sharedParams = SharedParams()
 
     private lateinit var binding: MainFragmentBinding //: ActivityMainBinding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     private var outputName = Settings.DEFAULT_NAME
     private var inputUri: Uri? = null
+
+    private fun updateToSharedParams() {
+        sharedParams.cropped = binding.switchCrop.isChecked
+    }
+
+    private fun updateFromSharedParams() {
+        binding.switchCrop.isChecked = sharedParams.cropped
+    }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.main_menu, menu)
@@ -214,7 +224,12 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
         warpImageAsync()
         if (outputImage.empty()) return
-        val bitmap = matToBitmap(outputImage) ?: return
+
+        val bitmap = matToBitmap(
+            if (binding.switchCrop.isChecked)
+                outputImageCropped
+            else
+                outputImage) ?: return
 
         setBusyDialogTitleAsync(MSG_SAVE)
 
@@ -312,15 +327,35 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
         val perspectiveMat = getPerspectiveTransform(srcMat, destMat)
         warpPerspective(inputImage, outputImage, perspectiveMat, inputImage.size(), INTER_LANCZOS4)
+
+        val destLeftInt = destLeft.toInt() + 1
+        val destRightInt = destRight.toInt() - 1
+        val destTopInt = destTop.toInt() + 1
+        val destBottomInt = destBottom.toInt() - 1
+
+        outputImageCropped = Mat(
+            outputImage,
+            Rect(
+                destLeftInt,
+                destTopInt,
+                destRightInt - destLeftInt - 1,
+                destBottomInt - destTopInt - 1))
     }
 
     private fun showPreview() {
         if (inputImage.empty()) return
         if (outputImage.empty()) return
-        val bitmap = matToBitmap(outputImage) ?: return
+        val bitmap = matToBitmap( outputImage) ?: return
+        val bitmapCropped = matToBitmap( outputImageCropped ) ?: return
         runOnUiThread {
-            PreviewFragment.show(activity, bitmap)
+            updateToSharedParams()
+            PreviewFragment.show(activity, bitmap, bitmapCropped, sharedParams)
         }
+    }
+
+    override fun onActivate() {
+        updateFromSharedParams()
+        super.onActivate()
     }
 
     private fun warpImage() {
@@ -338,6 +373,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
     private fun clearOutputImage() {
         outputImage.release()
+        outputImageCropped.release()
     }
 
     private fun lineIntersection( line1: Pair<PointF, PointF>, line2: Pair<PointF, PointF> ): PointF? {
@@ -376,43 +412,33 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
                 Size( AUTO_DETECT_WORK_SIZE.toDouble(), AUTO_DETECT_WORK_SIZE.toDouble()) ,
                 0.0,
                 0.0,
-                INTER_AREA
+                INTER_NEAREST_EXACT
         )
 
         cvtColor( image, image, COLOR_BGR2GRAY )
-
-        //blur reduce number of edge detected
-        blur( image, image, Size(3.0, 3.0) )
-
-        val meanValue = mean(image).`val`[0].toInt()
-        val minMax = minMaxLoc(image)
-        val minVal = minMax.minVal
-        val maxVal = minMax.maxVal
-        val lowerThreshold = (minVal + meanValue) / 2
-        val upperThreshold = (maxVal + meanValue) / 2
+        blur(image, image, Size(9.0,9.0))
+        threshold( image, image, 0.0,255.0,THRESH_BINARY + THRESH_OTSU)
 
         val edges = Mat()
-        Canny( image, edges, lowerThreshold, upperThreshold )
+        Canny( image, edges, 100.0, 200.0 )
 
         val hLines = mutableListOf<Pair<Point, Point>>()
         val vLines = mutableListOf<Pair<Point, Point>>()
 
-        for( threshold in 200 downTo 100 step 20 ) {
-            hLines.clear()
-            vLines.clear()
-
-            val lines = Mat()
-            HoughLinesP(edges, lines, 1.0, PI / 1024, threshold, 300.0, 100.0)
-            if (lines.empty()) continue
-
+        val lines = Mat()
+        HoughLinesP(edges, lines, 1.0, PI / 360, 10, 100.0, 100.0)
+        if (!lines.empty()) {
             for (lineIndex in 0 until lines.rows()) {
-                val startPoint = Point( lines.get(lineIndex, 0)[0].toInt(), lines.get(lineIndex, 0)[1].toInt() )
-                val endPoint = Point( lines.get(lineIndex, 0)[2].toInt(), lines.get(lineIndex, 0)[3].toInt() )
+                val line = lines.get(lineIndex, 0)
+                val startPoint = Point( line[0].toInt(), line[1].toInt() )
+                val endPoint = Point( line[2].toInt(), line[3].toInt() )
                 val delta = Point( abs(endPoint.x - startPoint.x), abs(endPoint.y - startPoint.y) )
                 val ratio = min(delta.x, delta.y).toFloat() / max(delta.x, delta.y)
 
-                // avoid lines that are too harsh
+                // avoid lines that are too close to 45°
                 if (ratio >= 0.3) continue
+
+                Log.i("ABCDEFG", "dx: ${delta.x}, dy: ${delta.y}")
 
                 if (delta.x > delta.y) {
                     if (startPoint.y >= minValue && endPoint.y >= minValue && startPoint.y <= maxValue && endPoint.y <= maxValue) {
@@ -424,8 +450,6 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
                     }
                 }
             }
-
-            if (hLines.size >= 2 && vLines.size >= 2) break
         }
 
         val hLineTop: Pair<Point, Point>

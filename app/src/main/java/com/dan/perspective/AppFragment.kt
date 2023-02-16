@@ -8,6 +8,9 @@ open class AppFragment(val activity: MainActivity) : Fragment() {
     open fun onBack(homeButton: Boolean) {
     }
 
+    open fun onActivate() {
+    }
+
     fun showToast(message: String) {
         activity.showToast(message)
     }
