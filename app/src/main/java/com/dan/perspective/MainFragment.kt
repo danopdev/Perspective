@@ -194,6 +194,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
     private fun setImage(uri: Uri, suggestedName: String? = null) {
         val matAndBitmap = loadImage(uri)
         if (null == matAndBitmap) {
+            inputUri = null
             showToast("Failed to load the image")
             return
         }
@@ -207,10 +208,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
             outputName = Settings.DEFAULT_NAME
 
             try {
-                DocumentFile.fromSingleUri(
-                    requireContext(),
-                    uri
-                )?.name?.let { name ->
+                DocumentFile.fromSingleUri(requireContext(), uri)?.name?.let { name ->
                     if (name.isNotEmpty()) {
                         val fields = name.split('.')
                         outputName = fields[0]
@@ -221,6 +219,7 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
             }
         }
 
+        inputUri = uri
         clearOutputImage()
         updateButtons()
 
