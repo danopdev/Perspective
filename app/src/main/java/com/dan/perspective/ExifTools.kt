@@ -11,7 +11,7 @@ import java.lang.Exception
 class ExifTools {
     companion object {
 
-        val EXIF_TAGS = listOf(
+        private val EXIF_TAGS = listOf(
             ExifInterface.TAG_APERTURE_VALUE,
             ExifInterface.TAG_DATETIME,
             ExifInterface.TAG_DATETIME_DIGITIZED,
