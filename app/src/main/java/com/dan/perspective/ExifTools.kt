@@ -3,7 +3,6 @@ package com.dan.perspective
 import android.content.ContentResolver
 import androidx.exifinterface.media.ExifInterface
 import android.net.Uri
-import java.io.File
 import java.io.InputStream
 import java.lang.Exception
 
@@ -83,23 +82,30 @@ class ExifTools {
             ExifInterface.TAG_XMP,
         )
 
-        fun copyExif(contentResolver: ContentResolver, sourceUri: Uri, destinationFile: File) {
+        fun copyExif(contentResolver: ContentResolver, sourceUri: Uri, destinationUri: Uri) {
             var inputStream: InputStream? = null
 
             try {
                 inputStream = contentResolver.openInputStream(sourceUri)
                 if (null != inputStream) {
                     val exifSource = ExifInterface(inputStream)
-                    val exifDestination = ExifInterface(destinationFile)
+                    val destParcelFileDescriptor = contentResolver.openFileDescriptor(destinationUri, "rw")
+                    if (null != destParcelFileDescriptor) {
+                        val destFileDescriptor = destParcelFileDescriptor.fileDescriptor
+                        if (null != destFileDescriptor) {
+                            val exifDestination = ExifInterface(destFileDescriptor)
 
-                    for( tag in EXIF_TAGS ) {
-                        val value = exifSource.getAttribute(tag)
-                        if (null != value) {
-                            exifDestination.setAttribute( tag, value )
+                            for (tag in EXIF_TAGS) {
+                                val value = exifSource.getAttribute(tag)
+                                if (null != value) {
+                                    exifDestination.setAttribute(tag, value)
+                                }
+                            }
+
+                            exifDestination.saveAttributes()
                         }
+                        destParcelFileDescriptor.close()
                     }
-
-                    exifDestination.saveAttributes()
                 }
             } catch(e: Exception) {
                 e.printStackTrace()

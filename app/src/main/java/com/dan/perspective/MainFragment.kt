@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Point
 import android.graphics.PointF
-import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -270,32 +269,29 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
                 outputImage) ?: return
 
         setBusyDialogTitleAsync(MSG_SAVE)
+        var success = false
+        val fileName = "${outputName}.jpg"
 
         try {
-            var fileName = "${outputName}.jpg"
-            var file = File(Settings.SAVE_FOLDER, fileName)
-            var counter = 0
-            while (file.exists() && counter < 998) {
-                counter++
-                val counterStr = "%03d".format(counter)
-                fileName = "${outputName}_${counterStr}.jpg"
-                file = File(Settings.SAVE_FOLDER, fileName)
-            }
+            val saveFolder = settings.saveFolder
+            if (null != saveFolder) {
+                val newFile = saveFolder.createFile("image/jpeg", fileName)
+                if (null != newFile) {
+                    val outputStream = requireContext().contentResolver.openOutputStream(newFile.uri)
+                    if (null != outputStream) {
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, outputStream)
+                        outputStream.close()
 
-            file.parentFile?.mkdirs()
+                        inputUri?.let { uri ->
+                            ExifTools.copyExif( activity.contentResolver, uri, newFile.uri )
+                        }
 
-            val outputStream = file.outputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, settings.jpegQuality, outputStream)
-            outputStream.close()
-
-            inputUri?.let { uri ->
-                ExifTools.copyExif( activity.contentResolver, uri, file )
+                        success = true
+                    }
+                }
             }
 
             runOnUiThread {
-                //Add it to gallery
-                MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
-
                 val perspectivePoints = binding.imageEdit.getPerspective()
                 settings.prevWidth = outputImage.width()
                 settings.prevHeight = outputImage.height()
@@ -311,11 +307,14 @@ class MainFragment(activity: MainActivity) : AppFragment(activity) {
 
                 menuPrevPerspective?.isEnabled = true
             }
-
-            showToast("Saved to: $fileName")
         } catch (e: Exception) {
-            showToast("Failed to save")
+            e.printStackTrace()
         }
+
+        if (success)
+            showToast("Saved to: $fileName")
+        else
+            showToast("Failed to save")
     }
 
     private fun saveImage() {

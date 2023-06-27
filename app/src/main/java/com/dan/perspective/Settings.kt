@@ -3,8 +3,8 @@ package com.dan.perspective
 
 import android.app.Activity
 import android.content.Context
-import android.os.Environment
-import java.io.File
+import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.createType
@@ -16,7 +16,6 @@ Settings: all public var fields will be saved
 class Settings( private val activity: Activity) {
 
     companion object {
-        val SAVE_FOLDER = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Perspective")
         const val DEFAULT_NAME = "output"
     }
 
@@ -33,6 +32,7 @@ class Settings( private val activity: Activity) {
     var prevWidth = 0
     var prevHeight = 0
     var autoDetectOnOpen = false
+    var saveFolder: DocumentFile? = null
 
     init {
         loadProperties()
@@ -50,12 +50,23 @@ class Settings( private val activity: Activity) {
         val preferences = activity.getPreferences(Context.MODE_PRIVATE)
 
         forEachSettingProperty { property ->
-            when( property.returnType ) {
-                Boolean::class.createType() -> property.setter.call( this, preferences.getBoolean( property.name, property.getter.call(this) as Boolean ) )
-                Int::class.createType() -> property.setter.call( this, preferences.getInt( property.name, property.getter.call(this) as Int ) )
-                Long::class.createType() -> property.setter.call( this, preferences.getLong( property.name, property.getter.call(this) as Long ) )
-                Float::class.createType() -> property.setter.call( this, preferences.getFloat( property.name, property.getter.call(this) as Float ) )
-                String::class.createType() -> property.setter.call( this, preferences.getString( property.name, property.getter.call(this) as String ) )
+            try {
+                when( property.returnType ) {
+                    Boolean::class.createType() -> property.setter.call( this, preferences.getBoolean( property.name, property.getter.call(this) as Boolean ) )
+                    Int::class.createType() -> property.setter.call( this, preferences.getInt( property.name, property.getter.call(this) as Int ) )
+                    Long::class.createType() -> property.setter.call( this, preferences.getLong( property.name, property.getter.call(this) as Long ) )
+                    Float::class.createType() -> property.setter.call( this, preferences.getFloat( property.name, property.getter.call(this) as Float ) )
+                    String::class.createType() -> property.setter.call( this, preferences.getString( property.name, property.getter.call(this) as String ) )
+                    DocumentFile::class.createType(nullable = true) -> {
+                        val strUri = preferences.getString( property.name, "")
+                        property.setter.call( this, null)
+                        if (null != strUri && strUri.isNotEmpty()) {
+                            property.setter.call( this, DocumentFile.fromTreeUri(activity, Uri.parse(strUri)) )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -71,6 +82,11 @@ class Settings( private val activity: Activity) {
                 Long::class.createType() -> editor.putLong( property.name, property.getter.call(this) as Long )
                 Float::class.createType() -> editor.putFloat( property.name, property.getter.call(this) as Float )
                 String::class.createType() -> editor.putString( property.name, property.getter.call(this) as String )
+                DocumentFile::class.createType(nullable = true) -> {
+                    val value = property.getter.call(this) as DocumentFile?
+                    val strValue = value?.uri?.toString() ?: ""
+                    editor.putString( property.name, strValue )
+                }
             }
         }
 

@@ -28,6 +28,10 @@ class SettingsFragment(activity: MainActivity) : AppFragment(activity) {
         settings.saveProperties()
     }
 
+    private fun update() {
+        binding.txtSaveFolder.text = settings.saveFolder?.name ?: ""
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         binding = SettingsFragmentBinding.inflate( inflater )
 
@@ -56,6 +60,14 @@ class SettingsFragment(activity: MainActivity) : AppFragment(activity) {
             override fun onStopTrackingTouch(p0: SeekBar?) {
             }
         })
+
+        binding.btnSaveFolder.setOnClickListener {
+            activity.startSelectFolder() {
+                update()
+            }
+        }
+
+        update()
 
         return binding.root
     }

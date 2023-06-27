@@ -1,7 +1,8 @@
 package com.dan.perspective
 
-import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.view.HapticFeedbackConstants
 import android.view.MenuItem
@@ -11,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -18,16 +20,31 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     companion object {
-        val PERMISSIONS = arrayOf(
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        val PERMISSIONS = arrayOf<String>(
         )
 
         const val REQUEST_PERMISSIONS = 1
+        const val SELECT_SAVE_FOLDER = 2
     }
 
     private val stack = mutableListOf<Pair<String, AppFragment>>()
     val settings: Settings by lazy { Settings(this) }
+    var selectFolderCallback: (()->Unit)? = null
+
+    fun startSelectFolder( callback: (()->Unit)? = null ) {
+        this.selectFolderCallback = callback
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+        intent.putExtra(Intent.EXTRA_TITLE, "Select save folder")
+        intent.putExtra("android.content.extra.SHOW_ADVANCED", true)
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
+        intent.addFlags(
+            Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_PREFIX_URI_PERMISSION or
+                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        )
+        startActivityForResult(intent, SELECT_SAVE_FOLDER)
+    }
 
     private fun popView(homeButton: Boolean = false): Boolean {
         if (stack.size <= 1) return false
@@ -166,6 +183,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onPermissionsAllowed() {
+        if (null == settings.saveFolder) {
+            startSelectFolder()
+        } else {
+            startApp()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
+        super.onActivityResult(requestCode, resultCode, intent)
+
+        if (SELECT_SAVE_FOLDER == requestCode && RESULT_OK == resultCode && null != intent) {
+            val data = intent.data
+            if (data is Uri) {
+                try {
+                    contentResolver.takePersistableUriPermission(data,  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                } catch(e: Exception) {
+                    e.printStackTrace()
+                }
+
+                val callStartApp = null == settings.saveFolder
+                settings.saveFolder = DocumentFile.fromTreeUri(applicationContext, data)
+                settings.saveProperties()
+
+                if (callStartApp) startApp()
+
+                selectFolderCallback?.invoke()
+            }
+        }
+    }
+
+
+    private fun startApp() {
         try {
             System.loadLibrary("opencv_java4")
         } catch (e: Exception) {
